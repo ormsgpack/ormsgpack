@@ -1,0 +1,37 @@
+name: CodSpeed
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - '.github/dependabot.yml'
+      - '.gitignore'
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  RUST_TOOLCHAIN: nightly-2025-11-28
+  UV_VERSION: 0.9.26
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - run: rustup install --profile minimal "$RUST_TOOLCHAIN"
+      - run: rustup default "$RUST_TOOLCHAIN"
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: 3.13
+      - uses: astral-sh/setup-uv@803947b9bd8e9f986429fa0c5a41c367cd732b41 # v7.2.1
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --frozen --config-setting build-args=--profile=benchmark
+      - uses: CodSpeedHQ/action@fa0c9b1770f933c1bc025c83a9b42946b102f4e6 # v4.10.4
+        with:
+          mode: simulation
+          run: uv run --no-sync pytest --codspeed benchmarks
