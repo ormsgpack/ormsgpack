@@ -49,3 +49,8 @@ lto = "thin"
 opt-level = 3
 panic = "abort"
 strip = "symbols"
+
+[profile.benchmark]
+inherits = "release"
+debug = true
+strip = "none"

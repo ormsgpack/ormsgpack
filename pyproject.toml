@@ -42,7 +42,6 @@ dev = [
     "pendulum",
     "pydantic",
     "pytest",
-    "pytest-benchmark",
     "python-dateutil",
     "pytz",
     "ruff",
@@ -51,13 +50,14 @@ dev = [
     "tzdata",
 ]
 
+dev-extra = [
+    "numpy; platform_python_implementation != 'GraalVM'",
+    "pytest-codspeed; platform_python_implementation != 'GraalVM'",
+]
+
 docs = [
     "furo",
     "sphinx",
-]
-
-numpy = [
-    "numpy; platform_python_implementation != 'GraalVM'",
 ]
 
 [build-system]
@@ -68,12 +68,14 @@ requires = ["maturin>=1.0,<2.0"]
 python-source = "python"
 
 [tool.mypy]
-exclude = "benchmarks"
 strict = true
 
 [[tool.mypy.overrides]]
 module = ["msgpack", "pendulum"]
 ignore_missing_imports = true
+
+[tool.pytest]
+testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 88
@@ -104,7 +106,7 @@ cache-keys = [
     { file = "Cargo.toml" },
     { file = "pyproject.toml" },
 ]
-default-groups = ["dev", "numpy"]
+default-groups = ["dev", "dev-extra"]
 
 [project.entry-points.pyinstaller40]
 hook-dirs = "ormsgpack._pyinstaller:get_hook_dirs"
