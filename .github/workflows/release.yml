@@ -23,7 +23,7 @@ concurrency:
 
 env:
   RUST_TOOLCHAIN: nightly-2025-11-28
-  UV_VERSION: 0.9.10
+  UV_VERSION: 0.9.26
 
 jobs:
   build:
@@ -107,10 +107,10 @@ jobs:
         include:
           - libc: 'gnu'
             manylinux: 'auto'
-            os: 'bookworm'
+            os: 'trixie'
           - libc: 'musl'
             manylinux: 'musllinux_1_2'
-            os: 'alpine'
+            os: 'alpine3.23'
           - platform: 'linux/amd64'
             libc: 'musl'
             target: 'x86_64-unknown-linux-musl'
