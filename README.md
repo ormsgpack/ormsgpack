@@ -12,7 +12,7 @@ ormsgpack follows semantic versioning and supports CPython, PyPy and GraalPy.
 
 Links:
 
-- [Repository](https://github.com/aviramha/ormsgpack)
+- [Repository](https://github.com/ormsgpack/ormsgpack)
 - [Documentation](https://ormsgpack.readthedocs.io/)
 
 ## Installation

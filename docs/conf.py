@@ -11,8 +11,8 @@ html_theme = "furo"
 html_theme_options = {}
 
 extlinks = {
-    "issue": ("https://github.com/aviramha/ormsgpack/issues/%s", "#%s"),
-    "pr": ("https://github.com/aviramha/ormsgpack/pull/%s", "#%s"),
+    "issue": ("https://github.com/ormsgpack/ormsgpack/issues/%s", "#%s"),
+    "pr": ("https://github.com/ormsgpack/ormsgpack/pull/%s", "#%s"),
     "user": ("https://github.com/%s", "%s"),
 }
 

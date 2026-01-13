@@ -33,7 +33,7 @@ license = "Apache-2.0 OR MIT"
 keywords = ["fast", "msgpack", "dataclass", "dataclasses", "datetime"]
 
 [project.urls]
-Homepage = "https://github.com/aviramha/ormsgpack"
+Homepage = "https://github.com/ormsgpack/ormsgpack"
 
 [dependency-groups]
 dev = [
