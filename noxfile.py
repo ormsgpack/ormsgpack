@@ -40,3 +40,16 @@ def test(session: nox.Session) -> None:
         env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
     )
     session.run("pytest")
+
+
+@nox.session(python="3.13")
+def docs(session: nox.Session) -> None:
+    session.run_install(
+        "uv",
+        "sync",
+        "--frozen",
+        "--only-group=docs",
+        f"--python={session.virtualenv.location}",
+        env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
+    )
+    session.run("sphinx-build", "-b", "html", "-W", "docs", "docs/html")

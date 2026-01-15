@@ -11,6 +11,7 @@ on:
       - '**.md'
       - '.github/dependabot.yml'
       - '.gitignore'
+  workflow_dispatch:
 
 # Cancel previous runs on the same PR.
 concurrency:
@@ -35,4 +36,4 @@ jobs:
       - uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
         with:
           version: ${{ env.UV_VERSION }}
-      - run: uvx nox -s lint
+      - run: uvx nox -s lint docs
