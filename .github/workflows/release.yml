@@ -1,6 +1,9 @@
 name: Release
-# This should almost always run, but upload binaries only on tag.
+
 on:
+  merge_group:
+    types:
+      - checks_requested
   pull_request:
     branches:
       - master
@@ -10,17 +13,18 @@ on:
       - '.gitignore'
   workflow_dispatch:
   push:
-    branches:
-      - master
     tags:
       - '*.*.*'
+
 # Cancel previous runs on the same PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 env:
   RUST_TOOLCHAIN: nightly-2025-11-28
   UV_VERSION: 0.9.10
+
 jobs:
   build:
     name: Build wheel

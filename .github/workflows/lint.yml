@@ -1,13 +1,17 @@
 name: Lint
+
 on:
+  merge_group:
+    types:
+      - checks_requested
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
     paths-ignore:
       - '**.md'
       - '.github/dependabot.yml'
       - '.gitignore'
-  push:
-    branches: [ master ]
+
 # Cancel previous runs on the same PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
