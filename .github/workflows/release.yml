@@ -54,6 +54,8 @@ jobs:
         exclude:
           - python-version: '3.10'
             target: 'aarch64-pc-windows-msvc'
+          - python-version: '3.14t'
+            target: 'aarch64-pc-windows-msvc'
     env:
       UV_PYTHON: ${{ matrix.python-version }}
     steps:
