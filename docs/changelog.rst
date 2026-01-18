@@ -1,6 +1,22 @@
 Changelog
 =========
 
+1.12.2 - 2026-01-18
+-------------------
+
+Changed
+~~~~~~~
+
+- Add Python 3.14 free-threaded Windows x86_64 wheel
+- Improve serialization performance
+- Update dependencies
+
+Fixed
+~~~~~
+
+- Fix ``unpackb`` crash on Windows with Python 3.14 free-threaded and
+  on Linux s390x (:issue:`499`)
+
 1.12.1 - 2025-12-14
 -------------------
 
