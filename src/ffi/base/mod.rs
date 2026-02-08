@@ -14,23 +14,8 @@ pub unsafe fn pybytes_as_mut_u8(op: *mut PyObject) -> *mut u8 {
 }
 
 #[inline(always)]
-pub unsafe fn pydict_new_presized(_: Py_ssize_t) -> *mut PyObject {
-    PyDict_New()
-}
-
-#[inline(always)]
 pub unsafe fn pydict_size(mp: *mut PyObject) -> Py_ssize_t {
     PyDict_Size(mp)
-}
-
-#[inline(always)]
-pub unsafe fn pydict_set_item_known_hash(
-    mp: *mut PyObject,
-    key: *mut PyObject,
-    item: *mut PyObject,
-    _: Py_hash_t,
-) -> c_int {
-    PyDict_SetItem(mp, key, item)
 }
 
 #[inline(always)]
