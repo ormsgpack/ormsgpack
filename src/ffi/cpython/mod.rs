@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use pyo3::ffi::*;
-use std::os::raw::c_int;
 
 mod int;
 mod unicode;
@@ -19,23 +18,8 @@ pub unsafe fn pybytes_as_mut_u8(op: *mut PyObject) -> *mut u8 {
 }
 
 #[inline(always)]
-pub unsafe fn pydict_new_presized(len: Py_ssize_t) -> *mut PyObject {
-    _PyDict_NewPresized(len)
-}
-
-#[inline(always)]
 pub unsafe fn pydict_size(mp: *mut PyObject) -> Py_ssize_t {
     Py_SIZE(mp)
-}
-
-#[inline(always)]
-pub unsafe fn pydict_set_item_known_hash(
-    mp: *mut PyObject,
-    key: *mut PyObject,
-    item: *mut PyObject,
-    hash: Py_hash_t,
-) -> c_int {
-    _PyDict_SetItem_KnownHash(mp, key, item, hash)
 }
 
 #[inline(always)]

@@ -364,7 +364,7 @@ impl<'de> Deserializer<'de> {
         &mut self,
         len: u32,
     ) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let dict_ptr = unsafe { pydict_new_presized(len as pyo3::ffi::Py_ssize_t) };
+        let dict_ptr = unsafe { pyo3::ffi::PyDict_New() };
         for _ in 0..len {
             let marker = self.read_marker()?;
             let key = match marker {
@@ -385,8 +385,7 @@ impl<'de> Deserializer<'de> {
             }?;
             let value = self.deserialize()?;
             unsafe {
-                let pyhash = (*key.as_ptr().cast::<pyo3::ffi::PyASCIIObject>()).hash;
-                let _ = pydict_set_item_known_hash(dict_ptr, key.as_ptr(), value.as_ptr(), pyhash);
+                let _ = pyo3::ffi::PyDict_SetItem(dict_ptr, key.as_ptr(), value.as_ptr());
                 // counter Py_INCREF in insertdict
                 pyo3::ffi::Py_DECREF(key.as_ptr());
                 pyo3::ffi::Py_DECREF(value.as_ptr());
@@ -399,7 +398,7 @@ impl<'de> Deserializer<'de> {
         &mut self,
         len: u32,
     ) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let dict_ptr = unsafe { pydict_new_presized(len as pyo3::ffi::Py_ssize_t) };
+        let dict_ptr = unsafe { pyo3::ffi::PyDict_New() };
         for _ in 0..len {
             let key = self.deserialize_map_key()?;
             let value = self.deserialize()?;
