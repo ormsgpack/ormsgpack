@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use crate::ffi::*;
-use crate::serialize::RECURSION_LIMIT;
+use crate::msgpack::RECURSION_LIMIT;
 
 use std::cell::Cell;
 use std::ffi::CStr;
