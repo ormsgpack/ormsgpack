@@ -201,6 +201,12 @@ API Reference
 
 .. py:class:: Ext(tag: int, data: bytes)
 
-   A class whose Instances are serialized as MessagePack extension types. The
+   A class whose instances are serialized as MessagePack extension types. The
    instantiation arguments are an integer in the range ``[0, 127]`` and a ``bytes``
    object, defining the type and value, respectively
+
+.. py:class:: Fragment(data: bytes)
+
+   A class whose instances are objects in MessagePack format and are serialized as is. The
+   instantiation argument is a ``bytes`` object and is validated to contain a single
+   object in MessagePack format.

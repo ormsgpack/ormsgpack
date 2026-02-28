@@ -158,6 +158,12 @@ TYPE_PARAMS = (
         id="uuid",
     ),
     pytest.param(
+        ormsgpack.Fragment(ormsgpack.packb(None)),
+        None,
+        0,
+        id="fragment",
+    ),
+    pytest.param(
         {1, 2},
         "{1, 2}",
         0,
@@ -235,7 +241,11 @@ def test_tuple(value: object, converted_value: object, option: int) -> None:
     ),
 )
 def test_pydantic(value: object, converted_value: object, option: int) -> None:
-    model_type = create_model("TestModel", a=(type(value), ...))
+    model_type = create_model(
+        "TestModel",
+        a=(type(value), ...),
+        __config__=ConfigDict(arbitrary_types_allowed=True),
+    )
     obj = model_type(a=value)
     converted_obj = {"a": converted_value}
 

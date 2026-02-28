@@ -8,6 +8,7 @@ mod datetimelike;
 mod default;
 mod dict;
 mod ext;
+mod fragment;
 mod list;
 mod memoryview;
 mod numpy;
@@ -19,5 +20,3 @@ mod uuid;
 mod writer;
 
 pub use serializer::serialize;
-
-const RECURSION_LIMIT: u8 = 255;

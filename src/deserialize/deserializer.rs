@@ -3,13 +3,13 @@
 use crate::deserialize::DeserializeError;
 use crate::exc::*;
 use crate::ffi::*;
-use crate::msgpack::Marker;
+use crate::io::Read;
+use crate::msgpack::{read_timestamp, Marker};
 use crate::opt::*;
 use crate::state::State;
 use chrono::{Datelike, Timelike};
 use simdutf8::basic::{from_utf8, Utf8Error};
 use std::borrow::Cow;
-use std::io::Read;
 use std::os::raw::c_char;
 use std::ptr::NonNull;
 
@@ -78,6 +78,16 @@ impl std::fmt::Display for Error {
     }
 }
 
+impl From<std::io::Error> for Error {
+    #[cold]
+    fn from(value: std::io::Error) -> Error {
+        match value.kind() {
+            std::io::ErrorKind::InvalidInput => Error::InvalidValue,
+            _ => Error::UnexpectedEof,
+        }
+    }
+}
+
 impl From<Utf8Error> for Error {
     #[cold]
     fn from(_: Utf8Error) -> Error {
@@ -85,17 +95,20 @@ impl From<Utf8Error> for Error {
     }
 }
 
-struct Deserializer<'de> {
-    data: &'de [u8],
+struct Deserializer<R> {
+    data: R,
     state: *mut State,
     ext_hook: Option<NonNull<pyo3::ffi::PyObject>>,
     opts: Opt,
     recursion: u16,
 }
 
-impl<'de> Deserializer<'de> {
+impl<R> Deserializer<R>
+where
+    R: Read,
+{
     fn new(
-        data: &'de [u8],
+        data: R,
         state: *mut State,
         ext_hook: Option<NonNull<pyo3::ffi::PyObject>>,
         opts: Opt,
@@ -109,108 +122,9 @@ impl<'de> Deserializer<'de> {
         }
     }
 
-    fn read_slice(&mut self, len: usize) -> Result<&'de [u8], Error> {
-        if len > self.data.len() {
-            return Err(Error::UnexpectedEof);
-        }
-        let (a, b) = self.data.split_at(len);
-        self.data = b;
-        Ok(a)
-    }
-
-    #[inline(always)]
-    fn read_f32(&mut self) -> Result<f32, Error> {
-        let mut buf = [0; 4];
-        self.data
-            .read_exact(&mut buf)
-            .map_err(|_| Error::UnexpectedEof)?;
-        Ok(f32::from_be_bytes(buf))
-    }
-
-    #[inline(always)]
-    fn read_f64(&mut self) -> Result<f64, Error> {
-        let mut buf = [0; 8];
-        self.data
-            .read_exact(&mut buf)
-            .map_err(|_| Error::UnexpectedEof)?;
-        Ok(f64::from_be_bytes(buf))
-    }
-
-    #[inline(always)]
-    fn read_i8(&mut self) -> Result<i8, Error> {
-        let mut buf = [0; 1];
-        self.data
-            .read_exact(&mut buf)
-            .map_err(|_| Error::UnexpectedEof)?;
-        Ok(buf[0] as i8)
-    }
-
-    #[inline(always)]
-    fn read_i16(&mut self) -> Result<i16, Error> {
-        let mut buf = [0; 2];
-        self.data
-            .read_exact(&mut buf)
-            .map_err(|_| Error::UnexpectedEof)?;
-        Ok(i16::from_be_bytes(buf))
-    }
-
-    #[inline(always)]
-    fn read_i32(&mut self) -> Result<i32, Error> {
-        let mut buf = [0; 4];
-        self.data
-            .read_exact(&mut buf)
-            .map_err(|_| Error::UnexpectedEof)?;
-        Ok(i32::from_be_bytes(buf))
-    }
-
-    #[inline(always)]
-    fn read_i64(&mut self) -> Result<i64, Error> {
-        let mut buf = [0; 8];
-        self.data
-            .read_exact(&mut buf)
-            .map_err(|_| Error::UnexpectedEof)?;
-        Ok(i64::from_be_bytes(buf))
-    }
-
-    #[inline(always)]
-    fn read_u8(&mut self) -> Result<u8, Error> {
-        let mut buf = [0; 1];
-        self.data
-            .read_exact(&mut buf)
-            .map_err(|_| Error::UnexpectedEof)?;
-        Ok(buf[0])
-    }
-
-    #[inline(always)]
-    fn read_u16(&mut self) -> Result<u16, Error> {
-        let mut buf = [0; 2];
-        self.data
-            .read_exact(&mut buf)
-            .map_err(|_| Error::UnexpectedEof)?;
-        Ok(u16::from_be_bytes(buf))
-    }
-
-    #[inline(always)]
-    fn read_u32(&mut self) -> Result<u32, Error> {
-        let mut buf = [0; 4];
-        self.data
-            .read_exact(&mut buf)
-            .map_err(|_| Error::UnexpectedEof)?;
-        Ok(u32::from_be_bytes(buf))
-    }
-
-    #[inline(always)]
-    fn read_u64(&mut self) -> Result<u64, Error> {
-        let mut buf = [0; 8];
-        self.data
-            .read_exact(&mut buf)
-            .map_err(|_| Error::UnexpectedEof)?;
-        Ok(u64::from_be_bytes(buf))
-    }
-
     #[inline(always)]
     fn read_marker(&mut self) -> Result<Marker, Error> {
-        let n = self.read_u8()?;
+        let n = self.data.read_u8()?;
         Ok(Marker::from_u8(n))
     }
 
@@ -218,26 +132,7 @@ impl<'de> Deserializer<'de> {
         &mut self,
         len: u32,
     ) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let (seconds, nanoseconds): (i64, u32) = match len {
-            4 => {
-                let seconds = self.read_u32()?;
-                (seconds.into(), 0)
-            }
-            8 => {
-                let value = self.read_u64()?;
-                ((value & 0x3ffffffff) as i64, (value >> 34) as u32)
-            }
-            12 => {
-                let nanoseconds = self.read_u32()?;
-                let seconds = self.read_i64()?;
-                (seconds, nanoseconds)
-            }
-            _ => return Err(Error::InvalidValue),
-        };
-        let datetime = match chrono::DateTime::<chrono::Utc>::from_timestamp(seconds, nanoseconds) {
-            Some(value) => value,
-            None => return Err(Error::InvalidValue),
-        };
+        let datetime = read_timestamp(&mut self.data, len)?;
         unsafe {
             let obj = {
                 let datetime_api = *pyo3::ffi::PyDateTimeAPI();
@@ -258,12 +153,12 @@ impl<'de> Deserializer<'de> {
     }
 
     fn deserialize_ext(&mut self, len: u32) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let tag = self.read_i8()?;
+        let tag = self.data.read_i8()?;
         if tag == -1 && self.opts & DATETIME_AS_TIMESTAMP_EXT != 0 {
             return self.deserialize_timestamp_ext(len);
         }
 
-        let data = self.read_slice(len as usize)?;
+        let data = self.data.read_slice(len as usize)?;
 
         match self.ext_hook {
             Some(callable) => unsafe {
@@ -335,14 +230,14 @@ impl<'de> Deserializer<'de> {
     }
 
     fn deserialize_str(&mut self, len: u32) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let data = self.read_slice(len as usize)?;
+        let data = self.data.read_slice(len as usize)?;
         let value = from_utf8(data)?;
         let ptr = unicode_from_str(value);
         unsafe { Ok(NonNull::new_unchecked(ptr)) }
     }
 
     fn deserialize_bin(&mut self, len: u32) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let v = self.read_slice(len as usize)?;
+        let v = self.data.read_slice(len as usize)?;
         let ptr = v.as_ptr().cast::<c_char>();
         let len = v.len() as pyo3::ffi::Py_ssize_t;
         unsafe {
@@ -370,15 +265,15 @@ impl<'de> Deserializer<'de> {
             let key = match marker {
                 Marker::FixStr(len) => self.deserialize_map_str_key(len.into()),
                 Marker::Str8 => {
-                    let len = self.read_u8()?;
+                    let len = self.data.read_u8()?;
                     self.deserialize_map_str_key(len.into())
                 }
                 Marker::Str16 => {
-                    let len = self.read_u16()?;
+                    let len = self.data.read_u16()?;
                     self.deserialize_map_str_key(len.into())
                 }
                 Marker::Str32 => {
-                    let len = self.read_u32()?;
+                    let len = self.data.read_u32()?;
                     self.deserialize_map_str_key(len)
                 }
                 marker => Err(Error::InvalidType(marker)),
@@ -435,87 +330,87 @@ impl<'de> Deserializer<'de> {
             Marker::False => self.deserialize_false(),
             Marker::FixPos(value) => self.deserialize_u64(value.into()),
             Marker::U8 => {
-                let value = self.read_u8()?;
+                let value = self.data.read_u8()?;
                 self.deserialize_u64(value.into())
             }
             Marker::U16 => {
-                let value = self.read_u16()?;
+                let value = self.data.read_u16()?;
                 self.deserialize_u64(value.into())
             }
             Marker::U32 => {
-                let value = self.read_u32()?;
+                let value = self.data.read_u32()?;
                 self.deserialize_u64(value.into())
             }
             Marker::U64 => {
-                let value = self.read_u64()?;
+                let value = self.data.read_u64()?;
                 self.deserialize_u64(value)
             }
             Marker::FixNeg(value) => self.deserialize_i64(value.into()),
             Marker::I8 => {
-                let value = self.read_i8()?;
+                let value = self.data.read_i8()?;
                 self.deserialize_i64(value.into())
             }
             Marker::I16 => {
-                let value = self.read_i16()?;
+                let value = self.data.read_i16()?;
                 self.deserialize_i64(value.into())
             }
             Marker::I32 => {
-                let value = self.read_i32()?;
+                let value = self.data.read_i32()?;
                 self.deserialize_i64(value.into())
             }
             Marker::I64 => {
-                let value = self.read_i64()?;
+                let value = self.data.read_i64()?;
                 self.deserialize_i64(value)
             }
             Marker::F32 => {
-                let value = self.read_f32()?;
+                let value = self.data.read_f32()?;
                 self.deserialize_f64(value.into())
             }
             Marker::F64 => {
-                let value = self.read_f64()?;
+                let value = self.data.read_f64()?;
                 self.deserialize_f64(value)
             }
             Marker::FixStr(len) => self.deserialize_str(len.into()),
             Marker::Str8 => {
-                let len = self.read_u8()?;
+                let len = self.data.read_u8()?;
                 self.deserialize_str(len.into())
             }
             Marker::Str16 => {
-                let len = self.read_u16()?;
+                let len = self.data.read_u16()?;
                 self.deserialize_str(len.into())
             }
             Marker::Str32 => {
-                let len = self.read_u32()?;
+                let len = self.data.read_u32()?;
                 self.deserialize_str(len)
             }
             Marker::Bin8 => {
-                let len = self.read_u8()?;
+                let len = self.data.read_u8()?;
                 self.deserialize_bin(len.into())
             }
             Marker::Bin16 => {
-                let len = self.read_u16()?;
+                let len = self.data.read_u16()?;
                 self.deserialize_bin(len.into())
             }
             Marker::Bin32 => {
-                let len = self.read_u32()?;
+                let len = self.data.read_u32()?;
                 self.deserialize_bin(len)
             }
             Marker::FixArray(len) => self.deserialize_array(len.into()),
             Marker::Array16 => {
-                let len = self.read_u16()?;
+                let len = self.data.read_u16()?;
                 self.deserialize_array(len.into())
             }
             Marker::Array32 => {
-                let len = self.read_u32()?;
+                let len = self.data.read_u32()?;
                 self.deserialize_array(len)
             }
             Marker::FixMap(len) => self.deserialize_map(len.into()),
             Marker::Map16 => {
-                let len = self.read_u16()?;
+                let len = self.data.read_u16()?;
                 self.deserialize_map(len.into())
             }
             Marker::Map32 => {
-                let len = self.read_u32()?;
+                let len = self.data.read_u32()?;
                 self.deserialize_map(len)
             }
             Marker::FixExt1 => self.deserialize_ext(1),
@@ -524,15 +419,15 @@ impl<'de> Deserializer<'de> {
             Marker::FixExt8 => self.deserialize_ext(8),
             Marker::FixExt16 => self.deserialize_ext(16),
             Marker::Ext8 => {
-                let len = self.read_u8()?;
+                let len = self.data.read_u8()?;
                 self.deserialize_ext(len.into())
             }
             Marker::Ext16 => {
-                let len = self.read_u16()?;
+                let len = self.data.read_u16()?;
                 self.deserialize_ext(len.into())
             }
             Marker::Ext32 => {
-                let len = self.read_u32()?;
+                let len = self.data.read_u32()?;
                 self.deserialize_ext(len)
             }
             Marker::Reserved => Err(Error::InvalidType(Marker::Reserved)),
@@ -548,7 +443,7 @@ impl<'de> Deserializer<'de> {
             hash_str(value.as_ptr());
             Ok(value)
         } else {
-            let data = self.read_slice(len as usize)?;
+            let data = self.data.read_slice(len as usize)?;
             Ok(unsafe { (*self.state).key_map.get(data)? })
         }
     }
@@ -568,7 +463,7 @@ impl<'de> Deserializer<'de> {
     }
 
     fn deserialize_map_ext_key(&mut self, len: u32) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let tag = self.read_i8()?;
+        let tag = self.data.read_i8()?;
         if tag == -1 && self.opts & DATETIME_AS_TIMESTAMP_EXT != 0 {
             self.deserialize_timestamp_ext(len)
         } else {
@@ -589,84 +484,84 @@ impl<'de> Deserializer<'de> {
             Marker::False => self.deserialize_false(),
             Marker::FixPos(value) => self.deserialize_u64(value.into()),
             Marker::U8 => {
-                let value = self.read_u8()?;
+                let value = self.data.read_u8()?;
                 self.deserialize_u64(value.into())
             }
             Marker::U16 => {
-                let value = self.read_u16()?;
+                let value = self.data.read_u16()?;
                 self.deserialize_u64(value.into())
             }
             Marker::U32 => {
-                let value = self.read_u32()?;
+                let value = self.data.read_u32()?;
                 self.deserialize_u64(value.into())
             }
             Marker::U64 => {
-                let value = self.read_u64()?;
+                let value = self.data.read_u64()?;
                 self.deserialize_u64(value)
             }
             Marker::FixNeg(value) => self.deserialize_i64(value.into()),
             Marker::I8 => {
-                let value = self.read_i8()?;
+                let value = self.data.read_i8()?;
                 self.deserialize_i64(value.into())
             }
             Marker::I16 => {
-                let value = self.read_i16()?;
+                let value = self.data.read_i16()?;
                 self.deserialize_i64(value.into())
             }
             Marker::I32 => {
-                let value = self.read_i32()?;
+                let value = self.data.read_i32()?;
                 self.deserialize_i64(value.into())
             }
             Marker::I64 => {
-                let value = self.read_i64()?;
+                let value = self.data.read_i64()?;
                 self.deserialize_i64(value)
             }
             Marker::F32 => {
-                let value = self.read_f32()?;
+                let value = self.data.read_f32()?;
                 self.deserialize_f64(value.into())
             }
             Marker::F64 => {
-                let value = self.read_f64()?;
+                let value = self.data.read_f64()?;
                 self.deserialize_f64(value)
             }
             Marker::FixStr(len) => self.deserialize_map_str_key(len.into()),
             Marker::Str8 => {
-                let len = self.read_u8()?;
+                let len = self.data.read_u8()?;
                 self.deserialize_map_str_key(len.into())
             }
             Marker::Str16 => {
-                let len = self.read_u16()?;
+                let len = self.data.read_u16()?;
                 self.deserialize_map_str_key(len.into())
             }
             Marker::Str32 => {
-                let len = self.read_u32()?;
+                let len = self.data.read_u32()?;
                 self.deserialize_map_str_key(len)
             }
             Marker::Bin8 => {
-                let len = self.read_u8()?;
+                let len = self.data.read_u8()?;
                 self.deserialize_bin(len.into())
             }
             Marker::Bin16 => {
-                let len = self.read_u16()?;
+                let len = self.data.read_u16()?;
                 self.deserialize_bin(len.into())
             }
             Marker::Bin32 => {
-                let len = self.read_u32()?;
+                let len = self.data.read_u32()?;
                 self.deserialize_bin(len)
             }
             Marker::FixArray(len) => self.deserialize_map_array_key(len.into()),
             Marker::Array16 => {
-                let len = self.read_u16()?;
+                let len = self.data.read_u16()?;
                 self.deserialize_map_array_key(len.into())
             }
             Marker::Array32 => {
-                let len = self.read_u32()?;
+                let len = self.data.read_u32()?;
                 self.deserialize_map_array_key(len)
             }
             Marker::FixExt4 => self.deserialize_map_ext_key(4),
             Marker::FixExt8 => self.deserialize_map_ext_key(8),
             Marker::Ext8 => {
-                let len = self.read_u8()?;
+                let len = self.data.read_u8()?;
                 self.deserialize_map_ext_key(len.into())
             }
             marker => Err(Error::InvalidType(marker)),

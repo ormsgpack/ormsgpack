@@ -5,15 +5,10 @@ import pytest
 
 import ormsgpack
 
+from .params import MAP_PARAMS
 
-@pytest.mark.parametrize(
-    "value",
-    (
-        pytest.param({"0": 0}, id="fixmap"),
-        pytest.param({str(i): i for i in range(16)}, id="map 16"),
-        pytest.param({str(i): i for i in range(65536)}, id="map 32"),
-    ),
-)
+
+@pytest.mark.parametrize("value", MAP_PARAMS)
 def test_dict(value: dict[str, int]) -> None:
     packed = ormsgpack.packb(value)
     assert packed == msgpack.packb(value)

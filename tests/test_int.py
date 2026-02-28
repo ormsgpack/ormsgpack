@@ -5,24 +5,10 @@ import pytest
 
 import ormsgpack
 
+from .params import INT_PARAMS
 
-@pytest.mark.parametrize(
-    "value",
-    (
-        pytest.param(1, id="positive fixint"),
-        pytest.param(128, id="uint 8"),
-        pytest.param(256, id="uint 16"),
-        pytest.param(65536, id="uint 32"),
-        pytest.param(4294967296, id="uint 64"),
-        pytest.param(18446744073709551615, id="uint 64 max"),
-        pytest.param(-1, id="negative fixint"),
-        pytest.param(-128, id="int 8"),
-        pytest.param(-256, id="int 16"),
-        pytest.param(-65536, id="int 32"),
-        pytest.param(-4294967296, id="int 64"),
-        pytest.param(-9223372036854775808, id="int 64 min"),
-    ),
-)
+
+@pytest.mark.parametrize("value", INT_PARAMS)
 def test_int_64(value: int) -> None:
     packed = ormsgpack.packb(value)
     assert packed == msgpack.packb(value)
