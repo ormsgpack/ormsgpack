@@ -17,6 +17,7 @@ mod deserialize;
 mod exc;
 mod ext;
 mod ffi;
+mod fragment;
 mod io;
 mod msgpack;
 mod opt;
@@ -126,6 +127,7 @@ pub unsafe extern "C" fn ormsgpack_exec(mptr: *mut PyObject) -> c_int {
         PyUnicode_FromStringAndSize(version.as_ptr().cast::<c_char>(), version.len() as isize)
     );
     module_add_object!(mptr, c"Ext", (*state).ext_type.cast::<PyObject>());
+    module_add_object!(mptr, c"Fragment", (*state).fragment_type.cast::<PyObject>());
     module_add_object!(mptr, c"MsgpackDecodeError", (*state).MsgpackDecodeError);
     module_add_object!(mptr, c"MsgpackEncodeError", (*state).MsgpackEncodeError);
 

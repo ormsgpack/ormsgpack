@@ -5,16 +5,10 @@ import pytest
 
 import ormsgpack
 
+from .params import STR_PARAMS
 
-@pytest.mark.parametrize(
-    "value",
-    (
-        pytest.param("a", id="fixstr"),
-        pytest.param("a" * 32, id="str 8"),
-        pytest.param("a" * 256, id="str 16"),
-        pytest.param("a" * 65536, id="str 32"),
-    ),
-)
+
+@pytest.mark.parametrize("value", STR_PARAMS)
 def test_str(value: str) -> None:
     packed = ormsgpack.packb(value)
     assert packed == msgpack.packb(value)

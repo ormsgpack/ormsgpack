@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 pub trait Read {
+    fn eof(&self) -> bool;
     fn read_array<const N: usize>(&mut self) -> Result<&[u8; N], std::io::Error>;
     fn read_slice(&mut self, len: usize) -> Result<&[u8], std::io::Error>;
 
@@ -66,6 +67,10 @@ pub trait Read {
 }
 
 impl Read for &[u8] {
+    fn eof(&self) -> bool {
+        self.is_empty()
+    }
+
     fn read_array<const N: usize>(&mut self) -> Result<&[u8; N], std::io::Error> {
         let (a, b) = match self.split_first_chunk() {
             Some(value) => value,

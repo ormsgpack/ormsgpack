@@ -11,6 +11,7 @@ mod marker;
 mod nil;
 mod serializer;
 mod str;
+mod validator;
 
 pub use array::*;
 pub use bin::*;
@@ -23,5 +24,6 @@ pub use marker::*;
 pub use nil::*;
 pub use serializer::*;
 pub use str::*;
+pub use validator::*;
 
 pub const RECURSION_LIMIT: u8 = 255;

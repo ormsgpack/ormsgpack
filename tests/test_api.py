@@ -73,10 +73,41 @@ def test_memoryview_round_trip() -> None:
     )
 
 
-def test_unpackb_invalid_data() -> None:
-    for val in (b"\xd9\x97#DL_", b"\xc1", b"\x91\xc1"):
-        with pytest.raises(ormsgpack.MsgpackDecodeError):
-            ormsgpack.unpackb(val)
+@pytest.mark.parametrize(
+    "value",
+    (
+        b"\xa2a\xc0",
+        b"\xa2a",
+        b"\xd9\x02a\xc0",
+        b"\xd9\x02a",
+        b"\xda\x02a\xc0",
+        b"\xda\x02a",
+        b"\xdb\x02a\xc0",
+        b"\xdb\x02a",
+        b"\xc4\x02a",
+        b"\xc5\x02a",
+        b"\xc6\x02a",
+        b"\xc1",
+        b"\x91",
+        b"\x91\xc1",
+        b"\xdc\x00\x01",
+        b"\xdc\x00\x01\xc1",
+        b"\xdd\x00\x00\x00\x01",
+        b"\xdd\x00\x00\x00\x01\xc1",
+        b"\x81",
+        b"\x81\xc1\x00",
+        b"\xde\x00\x01",
+        b"\xde\x00\x01\xc1\x00",
+        b"\xdf\x00\x00\x00\x01",
+        b"\xdf\x00\x00\x00\x01\xc1\x00",
+    ),
+)
+def test_invalid_data(value: bytes) -> None:
+    with pytest.raises(ormsgpack.MsgpackDecodeError):
+        ormsgpack.unpackb(value)
+
+    with pytest.raises(ValueError):
+        ormsgpack.Fragment(value)
 
 
 def test_unpackb_recursion() -> None:
