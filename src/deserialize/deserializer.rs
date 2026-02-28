@@ -4,7 +4,7 @@ use crate::deserialize::DeserializeError;
 use crate::exc::*;
 use crate::ffi::*;
 use crate::io::Read;
-use crate::msgpack::Marker;
+use crate::msgpack::{read_timestamp, Marker};
 use crate::opt::*;
 use crate::state::State;
 use chrono::{Datelike, Timelike};
@@ -132,26 +132,7 @@ where
         &mut self,
         len: u32,
     ) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let (seconds, nanoseconds): (i64, u32) = match len {
-            4 => {
-                let seconds = self.data.read_u32()?;
-                (seconds.into(), 0)
-            }
-            8 => {
-                let value = self.data.read_u64()?;
-                ((value & 0x3ffffffff) as i64, (value >> 34) as u32)
-            }
-            12 => {
-                let nanoseconds = self.data.read_u32()?;
-                let seconds = self.data.read_i64()?;
-                (seconds, nanoseconds)
-            }
-            _ => return Err(Error::InvalidValue),
-        };
-        let datetime = match chrono::DateTime::<chrono::Utc>::from_timestamp(seconds, nanoseconds) {
-            Some(value) => value,
-            None => return Err(Error::InvalidValue),
-        };
+        let datetime = read_timestamp(&mut self.data, len)?;
         unsafe {
             let obj = {
                 let datetime_api = *pyo3::ffi::PyDateTimeAPI();
