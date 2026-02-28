@@ -212,9 +212,9 @@ impl DateTimeLike for DateTime {
         self.offset
     }
 
-    fn timestamp(&self) -> (i64, u32) {
+    fn to_utc_datetime(&self) -> chrono::DateTime<chrono::Utc> {
         let offset = chrono::FixedOffset::east_opt(self.offset.unwrap_or_default()).unwrap();
-        let datetime = chrono::NaiveDateTime::new(
+        chrono::NaiveDateTime::new(
             chrono::NaiveDate::from_ymd_opt(self.year(), self.month() as u32, self.day() as u32)
                 .unwrap(),
             chrono::NaiveTime::from_hms_micro_opt(
@@ -226,8 +226,8 @@ impl DateTimeLike for DateTime {
             .unwrap(),
         )
         .and_local_timezone(offset)
-        .unwrap();
-        (datetime.timestamp(), datetime.timestamp_subsec_nanos())
+        .unwrap()
+        .into()
     }
 }
 

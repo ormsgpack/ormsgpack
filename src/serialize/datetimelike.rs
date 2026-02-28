@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+use crate::msgpack;
 use crate::opt::*;
 use chrono::{Datelike, Timelike};
 use serde::ser::{Serialize, Serializer};
@@ -64,7 +65,7 @@ pub trait TimeLike {
 
 pub trait DateTimeLike: DateLike + TimeLike {
     fn offset(&self) -> Option<i32>;
-    fn timestamp(&self) -> (i64, u32);
+    fn to_utc_datetime(&self) -> chrono::DateTime<chrono::Utc>;
 
     fn write_rfc3339<W>(&self, writer: &mut W, opts: Opt) -> Result<(), std::io::Error>
     where
@@ -115,19 +116,7 @@ pub trait DateTimeLike: DateLike + TimeLike {
     where
         W: std::io::Write,
     {
-        let (seconds, nanoseconds) = self.timestamp();
-        if seconds >> 34 == 0 {
-            let value = (i64::from(nanoseconds) << 34) | seconds;
-            if value <= 4294967295 {
-                writer.write_all(&(value as u32).to_be_bytes())?;
-            } else {
-                writer.write_all(&(value as u64).to_be_bytes())?;
-            }
-        } else {
-            writer.write_all(&nanoseconds.to_be_bytes())?;
-            writer.write_all(&seconds.to_be_bytes())?;
-        }
-        Ok(())
+        msgpack::write_timestamp(writer, self.to_utc_datetime())
     }
 }
 
@@ -173,11 +162,8 @@ impl DateTimeLike for NaiveDateTime {
         None
     }
 
-    fn timestamp(&self) -> (i64, u32) {
-        (
-            self.dt.and_utc().timestamp(),
-            self.dt.and_utc().timestamp_subsec_nanos(),
-        )
+    fn to_utc_datetime(&self) -> chrono::DateTime<chrono::Utc> {
+        self.dt.and_utc()
     }
 }
 
