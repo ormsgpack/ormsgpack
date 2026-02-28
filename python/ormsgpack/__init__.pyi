@@ -23,6 +23,9 @@ class MsgpackEncodeError(TypeError): ...
 class Ext:
     def __init__(self, tag: int, data: bytes) -> None: ...
 
+class Fragment:
+    def __init__(self, data: bytes) -> None: ...
+
 OPT_DATETIME_AS_TIMESTAMP_EXT: int
 OPT_NAIVE_UTC: int
 OPT_OMIT_MICROSECONDS: int

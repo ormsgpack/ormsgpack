@@ -10,6 +10,7 @@ use crate::serialize::datetime::*;
 use crate::serialize::default::*;
 use crate::serialize::dict::*;
 use crate::serialize::ext::*;
+use crate::serialize::fragment::*;
 use crate::serialize::list::*;
 use crate::serialize::memoryview::*;
 use crate::serialize::numpy::*;
@@ -232,8 +233,13 @@ impl<'a> PyObject<'a> {
         if ob_type == &raw mut pyo3::ffi::PyByteArray_Type {
             return ByteArray::new(self.ptr).serialize(serializer);
         }
+
         if ob_type == &raw mut pyo3::ffi::PyMemoryView_Type {
             return MemoryView::new(self.ptr).serialize(serializer);
+        }
+
+        if ob_type == unsafe { (*self.state).fragment_type } {
+            return Fragment::new(self.ptr).serialize(serializer);
         }
 
         self.serialize_with_default_hook(serializer)

@@ -5,15 +5,10 @@ import pytest
 
 import ormsgpack
 
+from .params import ARRAY_PARAMS
 
-@pytest.mark.parametrize(
-    "value",
-    (
-        pytest.param([0], id="fixarray"),
-        pytest.param([i for i in range(16)], id="array 16"),
-        pytest.param([i for i in range(65536)], id="array 32"),
-    ),
-)
+
+@pytest.mark.parametrize("value", ARRAY_PARAMS)
 def test_list(value: list[int]) -> None:
     packed = ormsgpack.packb(value)
     assert packed == msgpack.packb(value)

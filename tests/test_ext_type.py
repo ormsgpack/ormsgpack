@@ -3,20 +3,10 @@ import pytest
 
 import ormsgpack
 
+from .params import EXT_PARAMS
 
-@pytest.mark.parametrize(
-    "data",
-    (
-        pytest.param(b"a" * 1, id="fixext 1"),
-        pytest.param(b"a" * 2, id="fixext 2"),
-        pytest.param(b"a" * 4, id="fixext 4"),
-        pytest.param(b"a" * 8, id="fixext 8"),
-        pytest.param(b"a" * 16, id="fixext 16"),
-        pytest.param(b"a" * 32, id="ext 8"),
-        pytest.param(b"a" * 256, id="ext 16"),
-        pytest.param(b"a" * 65536, id="ext 32"),
-    ),
-)
+
+@pytest.mark.parametrize("data", EXT_PARAMS)
 def test_ext_type(data: bytes) -> None:
     tag = 1
     value = ormsgpack.Ext(tag, data)

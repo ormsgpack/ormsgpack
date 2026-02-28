@@ -51,4 +51,13 @@ enabling the corresponding passthrough options, e.g.:
 
 .. literalinclude:: examples/example_opt_passthrough_uuid.txt
 
+ormsgpack also provides the :py:class:`ormsgpack.Fragment` type to include objects in
+MessagePack format as is in the serialization:
+
+.. literalinclude:: examples/example_fragment.txt
+
+This can be useful in cases where an object to serialize contains nested objects that are
+provided as serialized, e.g. from a cache or an extension module, as the nested objects do
+not need to be deserialized.
+
 See the :ref:`api` and :ref:`types` sections for more details.

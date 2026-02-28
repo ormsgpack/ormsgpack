@@ -2,6 +2,7 @@
 
 use crate::deserialize::KeyMap;
 use crate::ext::create_ext_type;
+use crate::fragment::create_fragment_type;
 use pyo3::ffi::*;
 use std::ffi::CStr;
 use std::ptr::null_mut;
@@ -78,6 +79,7 @@ pub struct State {
     pub dataclass_field_type: *mut PyTypeObject,
     pub enum_type: *mut PyTypeObject,
     pub ext_type: *mut PyTypeObject,
+    pub fragment_type: *mut PyTypeObject,
     pub uuid_type: *mut PyTypeObject,
     pub array_struct_str: *mut PyObject,
     pub dataclass_fields_str: *mut PyObject,
@@ -110,6 +112,7 @@ impl State {
                 dataclass_field_type: load_type(c"dataclasses", c"_FIELD"),
                 enum_type: load_type(c"enum", c"EnumMeta"),
                 ext_type: create_ext_type(),
+                fragment_type: create_fragment_type(),
                 uuid_type: load_type(c"uuid", c"UUID"),
                 array_struct_str: PyUnicode_InternFromString(c"__array_struct__".as_ptr()),
                 dataclass_fields_str: PyUnicode_InternFromString(c"__dataclass_fields__".as_ptr()),
