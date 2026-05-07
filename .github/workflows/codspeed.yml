@@ -31,7 +31,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
       - run: uv sync --frozen --config-setting build-args=--profile=benchmark
-      - uses: CodSpeedHQ/action@c381be0bfd20e844fb45594f6aa182ffcd94545c # v4.15.0
+      - uses: CodSpeedHQ/action@3194d9a39c4d46684cb44bf7207fc56626aad8fd # v4.15.1
         with:
           mode: simulation
           run: uv run --no-sync pytest --codspeed benchmarks
