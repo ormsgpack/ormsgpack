@@ -3,6 +3,7 @@
 use crate::exc::*;
 use crate::io::WriteSlices;
 use crate::msgpack;
+use crate::util::unlikely;
 use serde::ser;
 
 #[derive(Debug)]
@@ -631,7 +632,7 @@ where
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Error> {
         match len {
             Some(len) => {
-                if unlikely!(self.recursion == msgpack::RECURSION_LIMIT) {
+                if unlikely(self.recursion == msgpack::RECURSION_LIMIT) {
                     return Err(Error::Custom(RECURSION_LIMIT_REACHED.to_string()));
                 }
 
@@ -668,7 +669,7 @@ where
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Error> {
         match len {
             Some(len) => {
-                if unlikely!(self.recursion == msgpack::RECURSION_LIMIT) {
+                if unlikely(self.recursion == msgpack::RECURSION_LIMIT) {
                     return Err(Error::Custom(RECURSION_LIMIT_REACHED.to_string()));
                 }
 

@@ -76,7 +76,7 @@ jobs:
           target: ${{ matrix.target }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
           manylinux: auto
-          args: --release -i python${{ matrix.python-version }} --features nightly
+          args: --release -i python${{ matrix.python-version }}
       - run: uv sync --frozen --no-install-project
       - run: uv pip install ormsgpack --no-index -f target/wheels
       - run: uv run --no-sync pytest
@@ -123,14 +123,12 @@ jobs:
           - platform: 'linux/arm/v7'
             libc: 'musl'
             target: 'armv7-unknown-linux-musleabihf'
-          - maturin_args: '--features nightly'
-            uv_no_group: ''
+          - uv_no_group: ''
           - platform: 'linux/amd64'
             runs-on: 'ubuntu-latest'
           - platform: 'linux/arm64'
             runs-on: 'ubuntu-24.04-arm'
           - platform: 'linux/arm/v7'
-            maturin_args: ''
             uv_no_group: 'dev-extra'
             runs-on: 'ubuntu-24.04-arm'
         exclude:
@@ -145,7 +143,7 @@ jobs:
           target: ${{ matrix.target }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
           manylinux: ${{ matrix.manylinux }}
-          args: --release -i python${{ matrix.python-version }} ${{ matrix.maturin_args }}
+          args: --release -i python${{ matrix.python-version }}
       - if: matrix.uv_no_group != ''
         run: echo UV_NO_GROUP=${{ matrix.uv_no_group }} >> $GITHUB_ENV
       - run: |

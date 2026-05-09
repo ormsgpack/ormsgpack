@@ -5,6 +5,7 @@ use crate::opt::*;
 use crate::serialize::default::DefaultHook;
 use crate::serialize::serializer::*;
 use crate::state::State;
+use crate::util::unlikely;
 
 use serde::ser::{Serialize, SerializeMap, Serializer};
 
@@ -65,7 +66,7 @@ impl Serialize for Dataclass<'_> {
             unsafe { pyo3::ffi::PyObject_GetAttr(self.ptr, (*self.state).dataclass_fields_str) };
         unsafe { pyo3::ffi::Py_DECREF(fields) };
         let len = unsafe { pydict_size(fields) } as usize;
-        if unlikely!(len == 0) {
+        if unlikely(len == 0) {
             return serializer.serialize_map(Some(0))?.end();
         }
 
@@ -88,7 +89,7 @@ impl Serialize for Dataclass<'_> {
                 continue;
             }
 
-            if unlikely!(dict.is_null()) {
+            if unlikely(dict.is_null()) {
                 if !is_pseudo_field(field.as_ptr(), self.state) {
                     let value = unsafe { pyo3::ffi::PyObject_GetAttr(self.ptr, attr.as_ptr()) };
                     unsafe { pyo3::ffi::Py_DECREF(value) };

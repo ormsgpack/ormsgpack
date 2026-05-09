@@ -6,6 +6,7 @@ use crate::opt::*;
 use crate::serialize::default::DefaultHook;
 use crate::serialize::serializer::*;
 use crate::state::State;
+use crate::util::unlikely;
 use serde::ser::{Serialize, SerializeMap, Serializer};
 use smallvec::SmallVec;
 
@@ -40,7 +41,7 @@ impl Serialize for Dict<'_> {
     {
         let mut critical_section = CriticalSection::new();
         critical_section.begin(self.ptr);
-        if unlikely!(unsafe { pydict_size(self.ptr) } == 0) {
+        if unlikely(unsafe { pydict_size(self.ptr) } == 0) {
             serializer.serialize_map(Some(0))?.end()
         } else if self.opts & (NON_STR_KEYS | SORT_KEYS) == 0 {
             self.serialize_with_str_keys(serializer)
@@ -66,7 +67,7 @@ impl Dict<'_> {
         let len = unsafe { pydict_size(self.ptr) } as usize;
         let mut map = serializer.serialize_map(Some(len))?;
         for (key, value) in PyDictIter::from_pyobject(self.ptr) {
-            if unlikely!(ob_type!(key.as_ptr()) != &raw mut pyo3::ffi::PyUnicode_Type) {
+            if unlikely(ob_type!(key.as_ptr()) != &raw mut pyo3::ffi::PyUnicode_Type) {
                 return Err(serde::ser::Error::custom(KEY_MUST_BE_STR));
             }
             let key_as_str = unicode_to_str(key.as_ptr()).map_err(serde::ser::Error::custom)?;
@@ -86,7 +87,7 @@ impl Dict<'_> {
         let mut items: SmallVec<[(&str, *mut pyo3::ffi::PyObject); 8]> =
             SmallVec::with_capacity(len);
         for (key, value) in PyDictIter::from_pyobject(self.ptr) {
-            if unlikely!(ob_type!(key.as_ptr()) != &raw mut pyo3::ffi::PyUnicode_Type) {
+            if unlikely(ob_type!(key.as_ptr()) != &raw mut pyo3::ffi::PyUnicode_Type) {
                 return Err(serde::ser::Error::custom(KEY_MUST_BE_STR));
             }
             let key_as_str = unicode_to_str(key.as_ptr()).map_err(serde::ser::Error::custom)?;

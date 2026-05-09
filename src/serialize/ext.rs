@@ -2,6 +2,7 @@
 
 use crate::ext::PyExt;
 use crate::ffi::pybytes_as_bytes;
+use crate::util::unlikely;
 use serde::ser::{Serialize, Serializer};
 use serde_bytes::Bytes;
 
@@ -23,7 +24,7 @@ impl Serialize for Ext {
     {
         let ext = self.ptr.cast::<PyExt>();
         let tag = unsafe { pyo3::ffi::PyLong_AsLongLong((*ext).tag) };
-        if unlikely!(!(0..=127).contains(&tag)) {
+        if unlikely(!(0..=127).contains(&tag)) {
             return Err(serde::ser::Error::custom("Extension type out of range"));
         }
         let data = unsafe { pybytes_as_bytes((*ext).data) };

@@ -3,6 +3,7 @@
 use crate::exc::*;
 use crate::io::Read;
 use crate::msgpack::{read_timestamp, Marker, RECURSION_LIMIT};
+use crate::util::unlikely;
 use simdutf8::basic::{from_utf8, Utf8Error};
 
 #[derive(Debug)]
@@ -100,7 +101,7 @@ where
 
     pub fn validate(&mut self) -> Result<(), Error> {
         self.recursion += 1;
-        if unlikely!(self.recursion == RECURSION_LIMIT) {
+        if unlikely(self.recursion == RECURSION_LIMIT) {
             return Err(Error::RecursionLimitReached);
         }
 

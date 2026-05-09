@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+use crate::util::unlikely;
 use pyo3::ffi::*;
 
 #[derive(Debug)]
@@ -20,7 +21,7 @@ pub fn unicode_to_str_via_ffi(op: *mut PyObject) -> Result<&'static str, Unicode
     unsafe {
         let mut size: Py_ssize_t = 0;
         let ptr = PyUnicode_AsUTF8AndSize(op, &mut size).cast::<u8>();
-        if unlikely!(ptr.is_null()) {
+        if unlikely(ptr.is_null()) {
             PyErr_Clear();
             Err(UnicodeError::Surrogates)
         } else {

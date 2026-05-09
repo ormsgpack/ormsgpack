@@ -2,6 +2,7 @@
 
 use crate::ffi::*;
 use crate::msgpack::RECURSION_LIMIT;
+use crate::util::unlikely;
 
 use std::cell::Cell;
 use std::ffi::CStr;
@@ -45,12 +46,12 @@ impl DefaultHook {
         match self.inner {
             Some(callable) => {
                 let recursion = self.recursion.get();
-                if unlikely!(recursion == RECURSION_LIMIT) {
+                if unlikely(recursion == RECURSION_LIMIT) {
                     return Err(Error::RecursionLimitReached);
                 }
                 self.recursion.set(recursion + 1);
                 let default_obj = unsafe { pyobject_call_one_arg(callable.as_ptr(), ptr) };
-                if unlikely!(default_obj.is_null()) {
+                if unlikely(default_obj.is_null()) {
                     Err(Error::InvalidType(ptr))
                 } else {
                     Ok(default_obj)

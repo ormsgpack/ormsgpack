@@ -4,6 +4,7 @@
 use crate::ffi::impl_::unicode_state::*;
 use crate::ffi::unicode::*;
 use crate::str::count_chars;
+use crate::util::unlikely;
 use pyo3::ffi::*;
 
 // see unicodeobject.h for documentation
@@ -107,7 +108,7 @@ pub fn hash_str(op: *mut PyObject) -> Py_hash_t {
 #[inline]
 pub fn unicode_to_str(op: *mut PyObject) -> Result<&'static str, UnicodeError> {
     unsafe {
-        if unlikely!(!pyunicode_is_compact(op)) {
+        if unlikely(!pyunicode_is_compact(op)) {
             unicode_to_str_via_ffi(op)
         } else if pyunicode_is_ascii(op) {
             let ptr = op.cast::<PyASCIIObject>().offset(1).cast::<u8>();

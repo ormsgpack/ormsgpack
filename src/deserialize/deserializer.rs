@@ -7,6 +7,7 @@ use crate::io::Read;
 use crate::msgpack::{read_timestamp, Marker};
 use crate::opt::*;
 use crate::state::State;
+use crate::util::unlikely;
 use chrono::{Datelike, Timelike};
 use simdutf8::basic::{from_utf8, Utf8Error};
 use std::borrow::Cow;
@@ -174,7 +175,7 @@ where
                 );
                 pyo3::ffi::Py_DECREF(tag_obj);
                 pyo3::ffi::Py_DECREF(data_obj);
-                if unlikely!(obj.is_null()) {
+                if unlikely(obj.is_null()) {
                     Err(Error::ExtHookFailed)
                 } else {
                     Ok(NonNull::new_unchecked(obj))
@@ -301,7 +302,7 @@ where
                 let ret = pyo3::ffi::PyDict_SetItem(dict_ptr, key.as_ptr(), value.as_ptr());
                 pyo3::ffi::Py_DECREF(key.as_ptr());
                 pyo3::ffi::Py_DECREF(value.as_ptr());
-                if unlikely!(ret == -1) {
+                if unlikely(ret == -1) {
                     return Err(Error::Internal);
                 }
             }
@@ -319,7 +320,7 @@ where
 
     fn deserialize(&mut self) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
         self.recursion += 1;
-        if unlikely!(self.recursion == RECURSION_LIMIT) {
+        if unlikely(self.recursion == RECURSION_LIMIT) {
             return Err(Error::RecursionLimitReached);
         }
 
@@ -438,7 +439,7 @@ where
     }
 
     fn deserialize_map_str_key(&mut self, len: u32) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        if unlikely!(len > 64) {
+        if unlikely(len > 64) {
             let value = self.deserialize_str(len)?;
             hash_str(value.as_ptr());
             Ok(value)
@@ -473,7 +474,7 @@ where
 
     fn deserialize_map_key(&mut self) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
         self.recursion += 1;
-        if unlikely!(self.recursion == RECURSION_LIMIT) {
+        if unlikely(self.recursion == RECURSION_LIMIT) {
             return Err(Error::RecursionLimitReached);
         }
 

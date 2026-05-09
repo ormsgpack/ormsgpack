@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+use crate::util::unlikely;
 use pyo3::ffi::*;
 use serde::ser::{Serialize, Serializer};
 use std::ffi::{c_long, c_ulong};
@@ -13,7 +14,7 @@ pub fn pylong_to_i64(op: *mut PyObject) -> Option<i64> {
         } else {
             PyLong_AsLongLong(op)
         };
-        if unlikely!(value == -1 && !PyErr_Occurred().is_null()) {
+        if unlikely(value == -1 && !PyErr_Occurred().is_null()) {
             PyErr_Clear();
             None
         } else {
@@ -31,7 +32,7 @@ pub fn pylong_to_u64(op: *mut PyObject) -> Option<u64> {
         } else {
             PyLong_AsUnsignedLongLong(op)
         };
-        if unlikely!(value == u64::MAX && !PyErr_Occurred().is_null()) {
+        if unlikely(value == u64::MAX && !PyErr_Occurred().is_null()) {
             PyErr_Clear();
             None
         } else {

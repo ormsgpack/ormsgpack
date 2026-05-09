@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
-#![cfg_attr(feature = "nightly", feature(core_intrinsics))]
-#![allow(internal_features)]
 #![allow(unused_unsafe)]
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::ptr_eq)]

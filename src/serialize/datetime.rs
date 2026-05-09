@@ -4,6 +4,7 @@ use crate::ffi::*;
 use crate::opt::*;
 use crate::serialize::datetimelike::{DateLike, DateTimeLike, TimeLike};
 use crate::state::State;
+use crate::util::unlikely;
 use serde::ser::{Serialize, Serializer};
 use serde_bytes::Bytes;
 
@@ -137,7 +138,7 @@ unsafe fn utcoffset(
     } else {
         py_offset = pyobject_call_method_one_arg(tzinfo, (*state).utcoffset_str, ptr);
     }
-    if unlikely!(py_offset.is_null()) {
+    if unlikely(py_offset.is_null()) {
         pyo3::ffi::PyErr_Clear();
         return Err(DateTimeError::LibraryUnsupported);
     }

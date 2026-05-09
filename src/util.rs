@@ -6,16 +6,15 @@ macro_rules! ob_type {
     };
 }
 
-#[cfg(feature = "nightly")]
-macro_rules! unlikely {
-    ($exp:expr) => {
-        core::intrinsics::unlikely($exp)
-    };
-}
+// TODO: replace with core::hint::cold_path once 1.95.0 is old enough
+#[inline(always)]
+#[cold]
+pub const fn cold_path() {}
 
-#[cfg(not(feature = "nightly"))]
-macro_rules! unlikely {
-    ($exp:expr) => {
-        $exp
-    };
+#[inline(always)]
+pub const fn unlikely(b: bool) -> bool {
+    if b {
+        cold_path();
+    }
+    b
 }

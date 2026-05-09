@@ -2,6 +2,7 @@
 
 use crate::ffi::*;
 use crate::opt::*;
+use crate::util::unlikely;
 
 use serde::ser::{Serialize, Serializer};
 
@@ -28,7 +29,7 @@ impl Serialize for StrWithSurrogates {
                 c"UTF-8".as_ptr(),
                 c"replace".as_ptr(),
             );
-            if unlikely!(ptr.is_null()) {
+            if unlikely(ptr.is_null()) {
                 return Err(serde::ser::Error::custom("invalid string"));
             }
             let slice = pybytes_as_bytes(ptr);
