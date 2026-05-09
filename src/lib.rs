@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
-#![cfg_attr(feature = "unstable-simd", feature(core_intrinsics))]
+#![cfg_attr(feature = "nightly", feature(core_intrinsics))]
 #![allow(internal_features)]
 #![allow(unused_unsafe)]
 #![allow(clippy::missing_safety_doc)]
@@ -23,6 +23,7 @@ mod msgpack;
 mod opt;
 mod serialize;
 mod state;
+mod str;
 
 use crate::ffi::*;
 use pyo3::ffi::*;

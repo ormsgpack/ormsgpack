@@ -6,14 +6,14 @@ macro_rules! ob_type {
     };
 }
 
-#[cfg(feature = "unstable-simd")]
+#[cfg(feature = "nightly")]
 macro_rules! unlikely {
     ($exp:expr) => {
         core::intrinsics::unlikely($exp)
     };
 }
 
-#[cfg(not(feature = "unstable-simd"))]
+#[cfg(not(feature = "nightly"))]
 macro_rules! unlikely {
     ($exp:expr) => {
         $exp

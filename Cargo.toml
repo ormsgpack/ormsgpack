@@ -2,7 +2,7 @@
 name = "ormsgpack"
 version = "1.12.2"
 edition = "2021"
-rust-version = "1.81"
+rust-version = "1.88"
 include = [
     "/build.rs",
     "/CHANGELOG.md",
@@ -20,15 +20,10 @@ crate-type = ["cdylib"]
 
 [features]
 default = []
-
-# Use SIMD intrinsics. This requires Rust on the nightly channel.
-unstable-simd = [
-    "bytecount/generic-simd",
-]
+nightly = []
 
 [dependencies]
 ahash = { version = "0.8", default-features = false }
-bytecount = { version = "^0.6.9", default-features = false, features = ["runtime-dispatch-simd"] }
 chrono = { version = "0.4.44", default-features = false }
 half = { version = "2.6.0", default-features = false }
 itoa = { version = "1", default-features = false }

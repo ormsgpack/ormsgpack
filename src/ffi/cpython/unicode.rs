@@ -3,6 +3,7 @@
 #[cfg(unicode_state)]
 use crate::ffi::impl_::unicode_state::*;
 use crate::ffi::unicode::*;
+use crate::str::count_chars;
 use pyo3::ffi::*;
 
 // see unicodeobject.h for documentation
@@ -11,7 +12,7 @@ pub fn unicode_from_str(buf: &str) -> *mut PyObject {
     if buf.is_empty() {
         unsafe { PyUnicode_New(0, 0) }
     } else {
-        let num_chars = bytecount::num_chars(buf.as_bytes());
+        let num_chars = count_chars(buf.as_bytes());
         if buf.len() == num_chars {
             pyunicode_ascii(buf)
         } else {

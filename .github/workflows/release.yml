@@ -76,7 +76,7 @@ jobs:
           target: ${{ matrix.target }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
           manylinux: auto
-          args: --release -i python${{ matrix.python-version }} --features unstable-simd
+          args: --release -i python${{ matrix.python-version }} --features nightly
       - run: uv sync --frozen --no-install-project
       - run: uv pip install ormsgpack --no-index -f target/wheels
       - run: uv run --no-sync pytest
@@ -123,7 +123,7 @@ jobs:
           - platform: 'linux/arm/v7'
             libc: 'musl'
             target: 'armv7-unknown-linux-musleabihf'
-          - maturin_args: '--features unstable-simd'
+          - maturin_args: '--features nightly'
             uv_no_group: ''
           - platform: 'linux/amd64'
             runs-on: 'ubuntu-latest'
