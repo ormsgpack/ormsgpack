@@ -213,7 +213,7 @@ pub unsafe extern "C" fn unpackb(
     let mut optsptr: Option<NonNull<PyObject>> = None;
 
     let num_args = PyVectorcall_NARGS(nargs as usize);
-    if unlikely!(num_args != 1) {
+    if num_args != 1 {
         let msg = if num_args > 1 {
             "unpackb() accepts only 1 positional argument"
         } else {
@@ -264,7 +264,7 @@ pub unsafe extern "C" fn packb(
     let mut optsptr: Option<NonNull<PyObject>> = None;
 
     let num_args = PyVectorcall_NARGS(nargs as usize);
-    if unlikely!(num_args == 0) {
+    if num_args == 0 {
         return raise_packb_exception(
             state,
             "packb() missing 1 required positional argument: 'obj'",
@@ -281,7 +281,7 @@ pub unsafe extern "C" fn packb(
         for i in 0..tuple_size {
             let arg = pytuple_get_item(kwnames, i as Py_ssize_t);
             if PyUnicode_Compare(arg, (*state).default_str) == 0 {
-                if unlikely!(default.is_some()) {
+                if default.is_some() {
                     return raise_packb_exception(
                         state,
                         "packb() got multiple values for argument: 'default'",
@@ -289,7 +289,7 @@ pub unsafe extern "C" fn packb(
                 }
                 default = Some(NonNull::new_unchecked(*args.offset(num_args + i)));
             } else if PyUnicode_Compare(arg, (*state).option_str) == 0 {
-                if unlikely!(optsptr.is_some()) {
+                if optsptr.is_some() {
                     return raise_packb_exception(
                         state,
                         "packb() got multiple values for argument: 'option'",
