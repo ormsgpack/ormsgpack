@@ -14,8 +14,8 @@ on:
   workflow_dispatch:
 
 env:
-  RUST_TOOLCHAIN: nightly-2025-11-28
-  UV_VERSION: 0.9.26
+  RUST_TOOLCHAIN: 1.95.0
+  UV_VERSION: 0.11.11
 
 jobs:
   benchmark:
