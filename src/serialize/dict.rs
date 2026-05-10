@@ -110,7 +110,6 @@ impl Dict<'_> {
     where
         S: Serializer,
     {
-        let opts = self.opts & NOT_PASSTHROUGH;
         let len = unsafe { pydict_size(self.ptr) } as usize;
         let mut map = serializer.serialize_map(Some(len))?;
         for (key, value) in PyDictIter::from_pyobject(self.ptr) {
@@ -122,7 +121,7 @@ impl Dict<'_> {
                 )?;
             } else {
                 map.serialize_entry(
-                    &DictKey::new(key.as_ptr(), self.state, opts),
+                    &DictKey::new(key.as_ptr(), self.state, self.opts),
                     &PyObject::new(value.as_ptr(), self.state, self.opts, self.default),
                 )?;
             }
