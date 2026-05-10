@@ -8,6 +8,6 @@ fn main() {
         && !(std::env::var("CARGO_CFG_TARGET_OS").unwrap() == "windows"
             && python_config.is_free_threaded())
     {
-        println!("cargo:rustc-cfg=unicode_state");
+        println!("cargo::rustc-cfg=unicode_state");
     }
 }
