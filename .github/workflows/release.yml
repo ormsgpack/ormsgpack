@@ -22,7 +22,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUST_TOOLCHAIN: 1.95.0
   UV_VERSION: 0.11.11
 
 jobs:
@@ -74,7 +73,6 @@ jobs:
       - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           target: ${{ matrix.target }}
-          rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
           manylinux: auto
           args: --release -i python${{ matrix.python-version }}
       - run: uv sync --frozen --no-install-project
@@ -141,7 +139,6 @@ jobs:
       - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           target: ${{ matrix.target }}
-          rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
           manylinux: ${{ matrix.manylinux }}
           args: --release -i python${{ matrix.python-version }}
       - if: matrix.uv_no_group != ''
@@ -169,7 +166,6 @@ jobs:
       - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           command: sdist
-          rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ormsgpack-sdist
