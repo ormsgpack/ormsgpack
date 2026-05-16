@@ -13,7 +13,6 @@ pub use int::*;
 pub use unicode::*;
 
 use pyo3::ffi::*;
-use std::os::raw::{c_char, c_int};
 use std::ptr::NonNull;
 
 #[inline(always)]
@@ -28,47 +27,6 @@ pub unsafe fn pybytearray_as_bytes(op: *mut PyObject) -> &'static [u8] {
     let buffer = PyByteArray_AsString(op).cast::<u8>();
     let length = PyByteArray_Size(op) as usize;
     std::slice::from_raw_parts(buffer, length)
-}
-
-#[repr(C)]
-#[cfg(not(PyPy))]
-pub struct _PyManagedBufferObject {
-    pub ob_base: *mut PyObject,
-    pub flags: c_int,
-    pub exports: Py_ssize_t,
-    pub master: *mut Py_buffer,
-}
-
-#[repr(C)]
-#[cfg(not(PyPy))]
-pub struct PyMemoryViewObject {
-    pub ob_base: PyVarObject,
-    pub mbuf: *mut _PyManagedBufferObject,
-    pub hash: Py_hash_t,
-    pub flags: c_int,
-    pub exports: Py_ssize_t,
-    pub view: Py_buffer,
-    pub weakreflist: *mut PyObject,
-    pub ob_array: [Py_ssize_t; 1],
-}
-
-#[repr(C)]
-#[cfg(PyPy)]
-pub struct PyMemoryViewObject {
-    pub ob_base: PyObject,
-    pub view: Py_buffer,
-}
-
-#[inline(always)]
-pub unsafe fn pymemoryview_as_bytes(op: *mut PyObject) -> Option<&'static [u8]> {
-    let view = &(*op.cast::<PyMemoryViewObject>()).view;
-    if PyBuffer_IsContiguous(view, b'C' as c_char) == 0 {
-        None
-    } else {
-        let buffer = view.buf.cast::<u8>();
-        let length = view.len as usize;
-        Some(std::slice::from_raw_parts(buffer, length))
-    }
 }
 
 pub struct PyDictIter {
@@ -102,5 +60,31 @@ impl Iterator for PyDictIter {
     fn size_hint(&self) -> (usize, Option<usize>) {
         let len = unsafe { pydict_size(self.op) } as usize;
         (len, Some(len))
+    }
+}
+
+pub struct Buffer {
+    view: Py_buffer,
+}
+
+impl Buffer {
+    pub unsafe fn get(obj: *mut PyObject) -> Option<Self> {
+        let mut view: Py_buffer = std::mem::zeroed();
+        if PyObject_GetBuffer(obj, &mut view, PyBUF_CONTIG_RO) == -1 {
+            return None;
+        }
+        Some(Self { view })
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        let buffer = self.view.buf.cast::<u8>();
+        let length = self.view.len as usize;
+        unsafe { std::slice::from_raw_parts(buffer, length) }
+    }
+}
+
+impl Drop for Buffer {
+    fn drop(&mut self) {
+        unsafe { PyBuffer_Release(&mut self.view) }
     }
 }

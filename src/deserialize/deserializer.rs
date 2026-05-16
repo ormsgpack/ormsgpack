@@ -16,6 +16,18 @@ use std::ptr::NonNull;
 
 const RECURSION_LIMIT: u16 = 1024;
 
+fn deserialize_slice(
+    contents: &[u8],
+    state: *mut State,
+    ext_hook: Option<NonNull<pyo3::ffi::PyObject>>,
+    opts: Opt,
+) -> Result<NonNull<pyo3::ffi::PyObject>, DeserializeError<'static>> {
+    let mut deserializer = Deserializer::new(contents, state, ext_hook, opts);
+    deserializer
+        .deserialize()
+        .map_err(|e| DeserializeError::new(Cow::Owned(e.to_string())))
+}
+
 pub fn deserialize(
     ptr: *mut pyo3::ffi::PyObject,
     state: *mut State,
@@ -23,30 +35,27 @@ pub fn deserialize(
     opts: Opt,
 ) -> Result<NonNull<pyo3::ffi::PyObject>, DeserializeError<'static>> {
     let obj_type_ptr = ob_type!(ptr);
-    let contents: &[u8];
 
     if obj_type_ptr == &raw mut pyo3::ffi::PyBytes_Type {
-        contents = unsafe { pybytes_as_bytes(ptr) };
+        let contents = unsafe { pybytes_as_bytes(ptr) };
+        deserialize_slice(contents, state, ext_hook, opts)
     } else if obj_type_ptr == &raw mut pyo3::ffi::PyMemoryView_Type {
-        if let Some(buffer) = unsafe { pymemoryview_as_bytes(ptr) } {
-            contents = buffer;
+        if let Some(buffer) = unsafe { Buffer::get(ptr) } {
+            let contents = buffer.as_bytes();
+            deserialize_slice(contents, state, ext_hook, opts)
         } else {
-            return Err(DeserializeError::new(Cow::Borrowed(
+            Err(DeserializeError::new(Cow::Borrowed(
                 "Input type memoryview must be a C contiguous buffer",
-            )));
+            )))
         }
     } else if obj_type_ptr == &raw mut pyo3::ffi::PyByteArray_Type {
-        contents = unsafe { pybytearray_as_bytes(ptr) };
+        let contents = unsafe { pybytearray_as_bytes(ptr) };
+        deserialize_slice(contents, state, ext_hook, opts)
     } else {
-        return Err(DeserializeError::new(Cow::Borrowed(
+        Err(DeserializeError::new(Cow::Borrowed(
             "Input must be bytes, bytearray, memoryview",
-        )));
+        )))
     }
-
-    let mut deserializer = Deserializer::new(contents, state, ext_hook, opts);
-    deserializer
-        .deserialize()
-        .map_err(|e| DeserializeError::new(Cow::Owned(e.to_string())))
 }
 
 #[derive(Debug)]
