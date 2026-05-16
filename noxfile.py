@@ -37,6 +37,7 @@ def test(session: nox.Session) -> None:
         "uv",
         "sync",
         "--frozen",
+        "--no-editable",
         f"--python={session.virtualenv.location}",
         env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
     )
