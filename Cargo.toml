@@ -23,7 +23,7 @@ default = []
 
 [dependencies]
 ahash = { version = "0.8", default-features = false }
-chrono = { version = "0.4.44", default-features = false }
+chrono = { version = "0.4.45", default-features = false }
 half = { version = "2.6.0", default-features = false }
 itoa = { version = "1", default-features = false }
 pyo3 = { version = "^0.28.3", default-features = false, features = ["extension-module"] }
