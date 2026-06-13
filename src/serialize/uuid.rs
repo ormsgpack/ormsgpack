@@ -40,13 +40,27 @@ impl UUID {
         let mut buffer: [c_uchar; 16] = [0; 16];
         unsafe {
             let value = pyo3::ffi::PyObject_GetAttr(self.ptr, (*self.state).int_str);
-            pyo3::ffi::_PyLong_AsByteArray(
-                value.cast::<pyo3::ffi::PyLongObject>(),
-                buffer.as_mut_ptr(),
-                16,
-                0, // little_endian
-                0, // is_signed
-            );
+            #[cfg(Py_3_13)]
+            {
+                pyo3::ffi::PyLong_AsNativeBytes(
+                    value,
+                    buffer.as_mut_ptr().cast(),
+                    16,
+                    pyo3::ffi::Py_ASNATIVEBYTES_BIG_ENDIAN
+                        | pyo3::ffi::Py_ASNATIVEBYTES_UNSIGNED_BUFFER
+                        | pyo3::ffi::Py_ASNATIVEBYTES_REJECT_NEGATIVE,
+                );
+            }
+            #[cfg(not(Py_3_13))]
+            {
+                pyo3::ffi::_PyLong_AsByteArray(
+                    value.cast::<pyo3::ffi::PyLongObject>(),
+                    buffer.as_mut_ptr(),
+                    16,
+                    0, // little_endian
+                    0, // is_signed
+                );
+            }
             pyo3::ffi::Py_DECREF(value);
         };
 
