@@ -228,7 +228,7 @@ def test_tuple(value: object, converted_value: object, option: int) -> None:
 
 @pytest.mark.parametrize(
     ("value", "converted_value", "option"),
-    (
+    [
         param
         for param in TYPE_PARAMS
         if param.id
@@ -238,7 +238,7 @@ def test_tuple(value: object, converted_value: object, option: int) -> None:
             "bytearray",
             "unknown",
         }
-    ),
+    ],
 )
 def test_pydantic(value: object, converted_value: object, option: int) -> None:
     model_type = create_model(
@@ -260,7 +260,7 @@ def test_pydantic(value: object, converted_value: object, option: int) -> None:
 
 @pytest.mark.parametrize(
     ("value", "converted_value", "option"),
-    (param for param in TYPE_PARAMS if param.id != "unknown"),
+    [param for param in TYPE_PARAMS if param.id != "unknown"],
 )
 def test_default(value: object, converted_value: object, option: int) -> None:
     packed = ormsgpack.packb(object(), default=lambda _: value, option=option)
@@ -269,7 +269,7 @@ def test_default(value: object, converted_value: object, option: int) -> None:
 
 @pytest.mark.parametrize(
     ("value", "converted_value", "option"),
-    (
+    [
         param
         for param in TYPE_PARAMS
         if param.id
@@ -282,7 +282,7 @@ def test_default(value: object, converted_value: object, option: int) -> None:
             "enum",
             "uuid",
         }
-    ),
+    ],
 )
 def test_dict_key(value: object, converted_value: object, option: int) -> None:
     obj = {value: True}
@@ -296,7 +296,7 @@ def test_dict_key(value: object, converted_value: object, option: int) -> None:
 
 @pytest.mark.parametrize(
     ("value", "converted_value", "option"),
-    (
+    [
         param
         for param in TYPE_PARAMS
         if param.id
@@ -304,7 +304,7 @@ def test_dict_key(value: object, converted_value: object, option: int) -> None:
             "dataclass",
             "pydantic",
         }
-    ),
+    ],
 )
 def test_invalid_dict_key(value: object, converted_value: object, option: int) -> None:
     with pytest.raises(ormsgpack.MsgpackEncodeError):
