@@ -13,8 +13,8 @@ def test_default_not_callable() -> None:
     packb() default not callable
     """
     with pytest.raises(ormsgpack.MsgpackEncodeError) as exc_info:
-        ormsgpack.packb(object(), default=NotImplementedError)
-    assert str(exc_info.value) == "Recursion limit for default hook reached"
+        ormsgpack.packb(object(), default=True)  # type: ignore[arg-type]
+    assert str(exc_info.value) == "Type is not msgpack serializable: object"
 
 
 def test_default_function() -> None:
@@ -106,5 +106,6 @@ def test_default_recursion_infinite() -> None:
     def default(obj: object) -> object:
         return obj
 
-    with pytest.raises(ormsgpack.MsgpackEncodeError):
+    with pytest.raises(ormsgpack.MsgpackEncodeError) as exc_info:
         ormsgpack.packb(ref, default=default)
+    assert str(exc_info.value) == "Recursion limit for default hook reached"
