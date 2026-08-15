@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-pub type Opt = u16;
+pub type Opt = u32;
 
 pub const NAIVE_UTC: Opt = 1;
 pub const NON_STR_KEYS: Opt = 1 << 1;
@@ -19,7 +19,7 @@ pub const PASSTHROUGH_ENUM: Opt = 1 << 13;
 pub const DATETIME_AS_TIMESTAMP_EXT: Opt = 1 << 14;
 pub const REPLACE_SURROGATES: Opt = 1 << 15;
 
-pub const PACKB_OPT_MASK: i32 = (DATETIME_AS_TIMESTAMP_EXT
+pub const PACKB_OPT_MASK: Opt = DATETIME_AS_TIMESTAMP_EXT
     | NAIVE_UTC
     | NON_STR_KEYS
     | OMIT_MICROSECONDS
@@ -34,6 +34,6 @@ pub const PACKB_OPT_MASK: i32 = (DATETIME_AS_TIMESTAMP_EXT
     | SERIALIZE_NUMPY
     | SERIALIZE_PYDANTIC
     | SORT_KEYS
-    | UTC_Z) as i32;
+    | UTC_Z;
 
-pub const UNPACKB_OPT_MASK: i32 = (DATETIME_AS_TIMESTAMP_EXT | NON_STR_KEYS) as i32;
+pub const UNPACKB_OPT_MASK: Opt = DATETIME_AS_TIMESTAMP_EXT | NON_STR_KEYS;

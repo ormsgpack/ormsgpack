@@ -184,9 +184,17 @@ fn raise_packb_exception(state: *mut state::State, msg: &str) -> *mut PyObject {
     std::ptr::null_mut()
 }
 
-unsafe fn parse_option_arg(opts: *mut PyObject, mask: i32) -> Result<i32, ()> {
+unsafe fn parse_option_arg(
+    opts: Option<NonNull<PyObject>>,
+    mask: opt::Opt,
+) -> Result<opt::Opt, ()> {
+    let Some(opts) = opts else {
+        return Ok(0);
+    };
+    let opts = opts.as_ptr();
     if Py_TYPE(opts) == &raw mut PyLong_Type {
-        let val = PyLong_AsLong(opts) as i32;
+        let val = PyLong_AsLong(opts);
+        let val = opt::Opt::try_from(val).map_err(|_| ())?;
         if val & !mask == 0 {
             Ok(val)
         } else {
@@ -236,15 +244,12 @@ pub unsafe extern "C" fn unpackb(
         }
     }
 
-    let mut optsbits: i32 = 0;
-    if let Some(opts) = optsptr {
-        match parse_option_arg(opts.as_ptr(), opt::UNPACKB_OPT_MASK) {
-            Ok(val) => optsbits = val,
-            Err(()) => return raise_unpackb_exception(state, "Invalid opts"),
-        }
-    }
+    let opts = match parse_option_arg(optsptr, opt::UNPACKB_OPT_MASK) {
+        Ok(val) => val,
+        Err(()) => return raise_unpackb_exception(state, "Invalid opts"),
+    };
 
-    match crate::deserialize::deserialize(*args, state, ext_hook, optsbits as opt::Opt) {
+    match crate::deserialize::deserialize(*args, state, ext_hook, opts) {
         Ok(val) => val.as_ptr(),
         Err(err) => raise_unpackb_exception(state, &err.message),
     }
@@ -300,15 +305,12 @@ pub unsafe extern "C" fn packb(
         }
     }
 
-    let mut optsbits: i32 = 0;
-    if let Some(opts) = optsptr {
-        match parse_option_arg(opts.as_ptr(), opt::PACKB_OPT_MASK) {
-            Ok(val) => optsbits = val,
-            Err(()) => return raise_packb_exception(state, "Invalid opts"),
-        }
-    }
+    let opts = match parse_option_arg(optsptr, opt::PACKB_OPT_MASK) {
+        Ok(val) => val,
+        Err(()) => return raise_packb_exception(state, "Invalid opts"),
+    };
 
-    match crate::serialize::serialize(*args, state, default, optsbits as opt::Opt) {
+    match crate::serialize::serialize(*args, state, default, opts) {
         Ok(val) => val.as_ptr(),
         Err(err) => raise_packb_exception(state, &err),
     }
