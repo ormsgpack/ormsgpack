@@ -3,6 +3,7 @@
 use crate::ffi::*;
 use crate::msgpack;
 use crate::opt::*;
+use crate::serialize::bool_::*;
 use crate::serialize::bytearray::*;
 use crate::serialize::bytes::*;
 use crate::serialize::dataclass::*;
@@ -268,7 +269,7 @@ impl Serialize for PyObject<'_> {
                 }
             }
         } else if ob_type == &raw mut pyo3::ffi::PyBool_Type {
-            serializer.serialize_bool(unsafe { self.ptr == pyo3::ffi::Py_True() })
+            Bool::new(self.ptr).serialize(serializer)
         } else if self.ptr == unsafe { pyo3::ffi::Py_None() } {
             serializer.serialize_unit()
         } else if ob_type == &raw mut pyo3::ffi::PyFloat_Type {
@@ -405,7 +406,7 @@ impl Serialize for DictKey {
                 Err(err) => Err(serde::ser::Error::custom(err)),
             }
         } else if ob_type == &raw mut pyo3::ffi::PyBool_Type {
-            serializer.serialize_bool(unsafe { self.ptr == pyo3::ffi::Py_True() })
+            Bool::new(self.ptr).serialize(serializer)
         } else if self.ptr == unsafe { pyo3::ffi::Py_None() } {
             serializer.serialize_unit()
         } else if ob_type == &raw mut pyo3::ffi::PyFloat_Type {

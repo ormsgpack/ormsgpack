@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+#[path = "bool.rs"]
+mod bool_;
 mod bytearray;
 mod bytes;
 mod dataclass;
