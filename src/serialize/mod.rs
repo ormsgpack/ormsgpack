@@ -9,6 +9,8 @@ mod datetime;
 mod datetimelike;
 mod default;
 mod dict;
+#[path = "enum.rs"]
+mod enum_;
 mod ext;
 mod float;
 mod fragment;

@@ -10,6 +10,7 @@ use crate::serialize::dataclass::*;
 use crate::serialize::datetime::*;
 use crate::serialize::default::*;
 use crate::serialize::dict::*;
+use crate::serialize::enum_::*;
 use crate::serialize::ext::*;
 use crate::serialize::float::*;
 use crate::serialize::fragment::*;
@@ -123,10 +124,7 @@ impl<'a> PyObject<'a> {
 
         if ob_type!(ob_type) == unsafe { (*self.state).enum_type } {
             if self.opts & PASSTHROUGH_ENUM == 0 {
-                let value =
-                    unsafe { pyo3::ffi::PyObject_GetAttr(self.ptr, (*self.state).value_str) };
-                unsafe { pyo3::ffi::Py_DECREF(value) };
-                return PyObject::new(value, self.state, self.opts, self.default)
+                return Enum::new(self.ptr, self.state, self.opts, self.default)
                     .serialize(serializer);
             } else {
                 return self.serialize_with_default_hook(serializer);
@@ -366,9 +364,7 @@ impl DictKey {
         }
 
         if ob_type!(ob_type) == unsafe { (*self.state).enum_type } {
-            let value = unsafe { pyo3::ffi::PyObject_GetAttr(self.ptr, (*self.state).value_str) };
-            unsafe { pyo3::ffi::Py_DECREF(value) };
-            return DictKey::new(value, self.state, self.opts).serialize(serializer);
+            return EnumDictKey::new(self.ptr, self.state, self.opts).serialize(serializer);
         }
 
         if is_subclass(ob_type, pyo3::ffi::Py_TPFLAGS_UNICODE_SUBCLASS) {
