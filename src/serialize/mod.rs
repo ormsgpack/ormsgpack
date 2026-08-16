@@ -10,6 +10,7 @@ mod datetimelike;
 mod default;
 mod dict;
 mod ext;
+mod float;
 mod fragment;
 mod list;
 mod memoryview;

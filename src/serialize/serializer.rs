@@ -11,6 +11,7 @@ use crate::serialize::datetime::*;
 use crate::serialize::default::*;
 use crate::serialize::dict::*;
 use crate::serialize::ext::*;
+use crate::serialize::float::*;
 use crate::serialize::fragment::*;
 use crate::serialize::list::*;
 use crate::serialize::memoryview::*;
@@ -273,7 +274,7 @@ impl Serialize for PyObject<'_> {
         } else if self.ptr == unsafe { pyo3::ffi::Py_None() } {
             serializer.serialize_unit()
         } else if ob_type == &raw mut pyo3::ffi::PyFloat_Type {
-            serializer.serialize_f64(unsafe { pyo3::ffi::PyFloat_AS_DOUBLE(self.ptr) })
+            Float::new(self.ptr).serialize(serializer)
         } else if ob_type == &raw mut pyo3::ffi::PyList_Type {
             List::new(self.ptr, self.state, self.opts, self.default).serialize(serializer)
         } else if ob_type == &raw mut pyo3::ffi::PyDict_Type {
@@ -410,7 +411,7 @@ impl Serialize for DictKey {
         } else if self.ptr == unsafe { pyo3::ffi::Py_None() } {
             serializer.serialize_unit()
         } else if ob_type == &raw mut pyo3::ffi::PyFloat_Type {
-            serializer.serialize_f64(unsafe { pyo3::ffi::PyFloat_AS_DOUBLE(self.ptr) })
+            Float::new(self.ptr).serialize(serializer)
         } else {
             self.serialize_unlikely(serializer)
         }
