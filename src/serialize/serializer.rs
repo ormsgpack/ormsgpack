@@ -23,7 +23,7 @@ use crate::serialize::tuple::*;
 use crate::serialize::uuid::*;
 use crate::serialize::writer::*;
 use crate::state::State;
-use serde::ser::{Serialize, SerializeSeq, Serializer};
+use serde::ser::{Serialize, Serializer};
 use std::os::raw::c_ulong;
 use std::ptr::NonNull;
 
@@ -283,39 +283,6 @@ impl Serialize for PyObject<'_> {
     }
 }
 
-pub struct DictTupleKey {
-    ptr: *mut pyo3::ffi::PyObject,
-    state: *mut State,
-    opts: Opt,
-}
-
-impl DictTupleKey {
-    pub fn new(ptr: *mut pyo3::ffi::PyObject, state: *mut State, opts: Opt) -> Self {
-        DictTupleKey {
-            ptr: ptr,
-            state: state,
-            opts: opts,
-        }
-    }
-}
-
-impl Serialize for DictTupleKey {
-    #[inline(never)]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let len = unsafe { pyo3::ffi::Py_SIZE(self.ptr) } as usize;
-        let mut seq = serializer.serialize_seq(Some(len))?;
-        for i in 0..len {
-            let item = unsafe { pytuple_get_item(self.ptr, i as isize) };
-            let value = DictKey::new(item, self.state, self.opts);
-            seq.serialize_element(&value)?;
-        }
-        seq.end()
-    }
-}
-
 pub struct DictKey {
     ptr: *mut pyo3::ffi::PyObject,
     state: *mut State,
@@ -356,7 +323,7 @@ impl DictKey {
         }
 
         if ob_type == &raw mut pyo3::ffi::PyTuple_Type {
-            return DictTupleKey::new(self.ptr, self.state, self.opts).serialize(serializer);
+            return TupleDictKey::new(self.ptr, self.state, self.opts).serialize(serializer);
         }
 
         if ob_type == unsafe { (*self.state).uuid_type } {
