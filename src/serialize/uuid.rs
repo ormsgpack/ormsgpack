@@ -9,9 +9,7 @@ pub struct UUID {
     state: *mut State,
 }
 
-const HEX: [u8; 16] = [
-    b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b', b'c', b'd', b'e', b'f',
-];
+const HEX: [u8; 16] = *b"0123456789abcdef";
 
 fn write_group<W>(writer: &mut W, group: &[c_uchar]) -> Result<(), std::io::Error>
 where
