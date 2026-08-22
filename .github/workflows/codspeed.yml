@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 env:
-  UV_VERSION: 0.11.11
+  UV_VERSION: 0.12.5
 
 jobs:
   benchmark:
