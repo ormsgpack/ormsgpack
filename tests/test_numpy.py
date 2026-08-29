@@ -82,6 +82,7 @@ def test_numpy_array_d1_datetime64_months() -> None:
     assert ormsgpack.packb(
         numpy.array(
             [
+                numpy.datetime64("1969-12"),
                 numpy.datetime64("2021-01"),
                 numpy.datetime64("2022-01"),
             ],
@@ -89,6 +90,7 @@ def test_numpy_array_d1_datetime64_months() -> None:
         option=ormsgpack.OPT_SERIALIZE_NUMPY,
     ) == msgpack.packb(
         [
+            "1969-12-01T00:00:00",
             "2021-01-01T00:00:00",
             "2022-01-01T00:00:00",
         ],
@@ -167,6 +169,7 @@ def test_numpy_array_d1_datetime64_milliseconds() -> None:
     assert ormsgpack.packb(
         numpy.array(
             [
+                numpy.datetime64("1969-12-31T23:59:59.999"),
                 numpy.datetime64("2021-01-01T00:00:00"),
                 numpy.datetime64("2022-01-01T00:00:00.123"),
             ],
@@ -174,6 +177,7 @@ def test_numpy_array_d1_datetime64_milliseconds() -> None:
         option=ormsgpack.OPT_SERIALIZE_NUMPY,
     ) == msgpack.packb(
         [
+            "1969-12-31T23:59:59.999000",
             "2021-01-01T00:00:00",
             "2022-01-01T00:00:00.123000",
         ],
@@ -184,6 +188,7 @@ def test_numpy_array_d1_datetime64_microseconds() -> None:
     assert ormsgpack.packb(
         numpy.array(
             [
+                numpy.datetime64("1969-12-31T23:59:59.999999"),
                 numpy.datetime64("2021-01-01T00:00:00"),
                 numpy.datetime64("2022-01-01T00:00:00.123456"),
             ],
@@ -191,6 +196,7 @@ def test_numpy_array_d1_datetime64_microseconds() -> None:
         option=ormsgpack.OPT_SERIALIZE_NUMPY,
     ) == msgpack.packb(
         [
+            "1969-12-31T23:59:59.999999",
             "2021-01-01T00:00:00",
             "2022-01-01T00:00:00.123456",
         ],
@@ -201,6 +207,7 @@ def test_numpy_array_d1_datetime64_nanoseconds() -> None:
     assert ormsgpack.packb(
         numpy.array(
             [
+                numpy.datetime64("1969-12-31T23:59:59.999999999"),
                 numpy.datetime64("2021-01-01T00:00:00"),
                 numpy.datetime64("2022-01-01T00:00:00.123456789"),
             ],
@@ -208,6 +215,7 @@ def test_numpy_array_d1_datetime64_nanoseconds() -> None:
         option=ormsgpack.OPT_SERIALIZE_NUMPY,
     ) == msgpack.packb(
         [
+            "1969-12-31T23:59:59.999999",
             "2021-01-01T00:00:00",
             "2022-01-01T00:00:00.123456",
         ],
@@ -632,3 +640,25 @@ def test_numpy_datetime64_unsupported_unit() -> None:
             numpy.datetime64("NaT"),
             option=ormsgpack.OPT_SERIALIZE_NUMPY,
         )
+
+
+@pytest.mark.parametrize("unit", ("Y", "M", "W", "D", "h", "m", "s", "ms", "us"))
+def test_numpy_datetime64_unrepresentable(unit: str) -> None:
+    value = numpy.datetime64(numpy.iinfo(numpy.int64).max, unit)
+
+    with pytest.raises(ormsgpack.MsgpackEncodeError):
+        ormsgpack.packb(value, option=ormsgpack.OPT_SERIALIZE_NUMPY)
+
+    with pytest.raises(ormsgpack.MsgpackEncodeError):
+        ormsgpack.packb(numpy.array([value]), option=ormsgpack.OPT_SERIALIZE_NUMPY)
+
+
+@pytest.mark.parametrize("unit", ("Y", "M", "W", "D", "h", "m", "s", "ms", "us", "ns"))
+def test_numpy_datetime64_nat(unit: str) -> None:
+    value = numpy.datetime64("NaT", unit)
+
+    with pytest.raises(ormsgpack.MsgpackEncodeError):
+        ormsgpack.packb(value, option=ormsgpack.OPT_SERIALIZE_NUMPY)
+
+    with pytest.raises(ormsgpack.MsgpackEncodeError):
+        ormsgpack.packb(numpy.array([value]), option=ormsgpack.OPT_SERIALIZE_NUMPY)

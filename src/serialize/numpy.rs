@@ -2,7 +2,7 @@ use crate::ffi::*;
 use crate::opt::*;
 use crate::serialize::datetimelike::NaiveDateTime;
 use crate::state::State;
-use chrono::{DateTime, NaiveDate};
+use chrono::{DateTime, NaiveDate, NaiveTime, TimeDelta};
 use pyo3::ffi::*;
 use serde::ser::{Serialize, SerializeSeq, Serializer};
 use std::os::raw::{c_char, c_int, c_void};
@@ -108,10 +108,9 @@ impl Serialize for NumpyArrayData {
             ItemType::DATETIME64(unit) => {
                 let slice: &[i64] =
                     unsafe { std::slice::from_raw_parts(self.data.cast::<i64>(), self.len) };
+                let convert = unit.converter().map_err(serde::ser::Error::custom)?;
                 for &each in slice.iter() {
-                    let value = unit
-                        .datetime(each, self.opts)
-                        .map_err(serde::ser::Error::custom)?;
+                    let value = convert(each, self.opts).map_err(serde::ser::Error::custom)?;
                     seq.serialize_element(&value).unwrap();
                 }
             }
@@ -386,6 +385,7 @@ impl std::fmt::Display for NumpyDatetimeUnit {
 enum NumpyDateTimeError {
     UnsupportedUnit(NumpyDatetimeUnit),
     Unrepresentable { unit: NumpyDatetimeUnit, val: i64 },
+    NaT,
 }
 
 impl std::fmt::Display for NumpyDateTimeError {
@@ -395,9 +395,12 @@ impl std::fmt::Display for NumpyDateTimeError {
             Self::Unrepresentable { unit, val } => {
                 write!(f, "unrepresentable numpy.datetime64: {val} {unit}")
             }
+            Self::NaT => write!(f, "unrepresentable numpy.datetime64: NaT"),
         }
     }
 }
+
+type NumpyDatetimeConverter = fn(i64, Opt) -> Result<NaiveDateTime, NumpyDateTimeError>;
 
 impl NumpyDatetimeUnit {
     /// Create a `NumpyDatetimeUnit` from a pointer to a Python object holding a
@@ -444,71 +447,182 @@ impl NumpyDatetimeUnit {
         }
     }
 
-    /// Return a `NaiveDateTime` for a value in array with this unit.
+    /// Return a `NaiveDateTime` for a value with this unit.
     ///
     /// Returns an `Err(NumpyDateTimeError)` if the value is invalid for this unit.
     fn datetime(&self, val: i64, opts: Opt) -> Result<NaiveDateTime, NumpyDateTimeError> {
+        self.converter()?(val, opts)
+    }
+
+    fn check_nat(val: i64) -> Result<(), NumpyDateTimeError> {
+        if val == i64::MIN {
+            Err(NumpyDateTimeError::NaT)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn datetime_from_years(val: i64, opts: Opt) -> Result<NaiveDateTime, NumpyDateTimeError> {
+        Self::check_nat(val)?;
+        let dt = NaiveDate::from_ymd_opt(
+            (val + 1970)
+                .try_into()
+                .map_err(|_| NumpyDateTimeError::Unrepresentable {
+                    unit: Self::Years,
+                    val,
+                })?,
+            1,
+            1,
+        )
+        .ok_or(NumpyDateTimeError::Unrepresentable {
+            unit: Self::Years,
+            val,
+        })?
+        .and_time(NaiveTime::MIN);
+        Ok(NaiveDateTime { dt, opts })
+    }
+
+    fn datetime_from_months(val: i64, opts: Opt) -> Result<NaiveDateTime, NumpyDateTimeError> {
+        Self::check_nat(val)?;
+        let dt = NaiveDate::from_ymd_opt(
+            (val.div_euclid(12) + 1970).try_into().map_err(|_| {
+                NumpyDateTimeError::Unrepresentable {
+                    unit: Self::Months,
+                    val,
+                }
+            })?,
+            (val.rem_euclid(12) + 1).try_into().map_err(|_| {
+                NumpyDateTimeError::Unrepresentable {
+                    unit: Self::Months,
+                    val,
+                }
+            })?,
+            1,
+        )
+        .ok_or(NumpyDateTimeError::Unrepresentable {
+            unit: Self::Months,
+            val,
+        })?
+        .and_time(NaiveTime::MIN);
+        Ok(NaiveDateTime { dt, opts })
+    }
+
+    fn datetime_from_weeks(val: i64, opts: Opt) -> Result<NaiveDateTime, NumpyDateTimeError> {
+        Self::check_nat(val)?;
+        let dt = TimeDelta::try_weeks(val)
+            .and_then(|delta| DateTime::UNIX_EPOCH.checked_add_signed(delta))
+            .ok_or(NumpyDateTimeError::Unrepresentable {
+                unit: Self::Weeks,
+                val,
+            })?
+            .naive_utc();
+        Ok(NaiveDateTime { dt, opts })
+    }
+
+    fn datetime_from_days(val: i64, opts: Opt) -> Result<NaiveDateTime, NumpyDateTimeError> {
+        Self::check_nat(val)?;
+        let dt = TimeDelta::try_days(val)
+            .and_then(|delta| DateTime::UNIX_EPOCH.checked_add_signed(delta))
+            .ok_or(NumpyDateTimeError::Unrepresentable {
+                unit: Self::Days,
+                val,
+            })?
+            .naive_utc();
+        Ok(NaiveDateTime { dt, opts })
+    }
+
+    fn datetime_from_hours(val: i64, opts: Opt) -> Result<NaiveDateTime, NumpyDateTimeError> {
+        Self::check_nat(val)?;
+        let dt = TimeDelta::try_hours(val)
+            .and_then(|delta| DateTime::UNIX_EPOCH.checked_add_signed(delta))
+            .ok_or(NumpyDateTimeError::Unrepresentable {
+                unit: Self::Hours,
+                val,
+            })?
+            .naive_utc();
+        Ok(NaiveDateTime { dt, opts })
+    }
+
+    fn datetime_from_minutes(val: i64, opts: Opt) -> Result<NaiveDateTime, NumpyDateTimeError> {
+        Self::check_nat(val)?;
+        let dt = TimeDelta::try_minutes(val)
+            .and_then(|delta| DateTime::UNIX_EPOCH.checked_add_signed(delta))
+            .ok_or(NumpyDateTimeError::Unrepresentable {
+                unit: Self::Minutes,
+                val,
+            })?
+            .naive_utc();
+        Ok(NaiveDateTime { dt, opts })
+    }
+
+    fn datetime_from_seconds(val: i64, opts: Opt) -> Result<NaiveDateTime, NumpyDateTimeError> {
+        Self::check_nat(val)?;
+        let dt = TimeDelta::try_seconds(val)
+            .and_then(|delta| DateTime::UNIX_EPOCH.checked_add_signed(delta))
+            .ok_or(NumpyDateTimeError::Unrepresentable {
+                unit: Self::Seconds,
+                val,
+            })?
+            .naive_utc();
+        Ok(NaiveDateTime { dt, opts })
+    }
+
+    fn datetime_from_milliseconds(
+        val: i64,
+        opts: Opt,
+    ) -> Result<NaiveDateTime, NumpyDateTimeError> {
+        Self::check_nat(val)?;
+        let dt = TimeDelta::try_milliseconds(val)
+            .and_then(|delta| DateTime::UNIX_EPOCH.checked_add_signed(delta))
+            .ok_or(NumpyDateTimeError::Unrepresentable {
+                unit: Self::Milliseconds,
+                val,
+            })?
+            .naive_utc();
+        Ok(NaiveDateTime { dt, opts })
+    }
+
+    fn datetime_from_microseconds(
+        val: i64,
+        opts: Opt,
+    ) -> Result<NaiveDateTime, NumpyDateTimeError> {
+        Self::check_nat(val)?;
+        let dt = DateTime::UNIX_EPOCH
+            .checked_add_signed(TimeDelta::microseconds(val))
+            .ok_or(NumpyDateTimeError::Unrepresentable {
+                unit: Self::Microseconds,
+                val,
+            })?
+            .naive_utc();
+        Ok(NaiveDateTime { dt, opts })
+    }
+
+    fn datetime_from_nanoseconds(val: i64, opts: Opt) -> Result<NaiveDateTime, NumpyDateTimeError> {
+        Self::check_nat(val)?;
+        let dt = DateTime::UNIX_EPOCH
+            .checked_add_signed(TimeDelta::nanoseconds(val))
+            .ok_or(NumpyDateTimeError::Unrepresentable {
+                unit: Self::Nanoseconds,
+                val,
+            })?
+            .naive_utc();
+        Ok(NaiveDateTime { dt, opts })
+    }
+
+    fn converter(&self) -> Result<NumpyDatetimeConverter, NumpyDateTimeError> {
         match self {
-            Self::Years => Ok(NaiveDate::from_ymd_opt(
-                (val + 1970)
-                    .try_into()
-                    .map_err(|_| NumpyDateTimeError::Unrepresentable { unit: *self, val })?,
-                1,
-                1,
-            )
-            .unwrap()
-            .and_hms_opt(0, 0, 0)
-            .unwrap()),
-            Self::Months => Ok(NaiveDate::from_ymd_opt(
-                (val / 12 + 1970)
-                    .try_into()
-                    .map_err(|_| NumpyDateTimeError::Unrepresentable { unit: *self, val })?,
-                (val % 12 + 1)
-                    .try_into()
-                    .map_err(|_| NumpyDateTimeError::Unrepresentable { unit: *self, val })?,
-                1,
-            )
-            .unwrap()
-            .and_hms_opt(0, 0, 0)
-            .unwrap()),
-            Self::Weeks => Ok(DateTime::from_timestamp(val * 7 * 24 * 60 * 60, 0)
-                .unwrap()
-                .naive_utc()),
-            Self::Days => Ok(DateTime::from_timestamp(val * 24 * 60 * 60, 0)
-                .unwrap()
-                .naive_utc()),
-            Self::Hours => Ok(DateTime::from_timestamp(val * 60 * 60, 0)
-                .unwrap()
-                .naive_utc()),
-            Self::Minutes => Ok(DateTime::from_timestamp(val * 60, 0).unwrap().naive_utc()),
-            Self::Seconds => Ok(DateTime::from_timestamp(val, 0).unwrap().naive_utc()),
-            Self::Milliseconds => Ok(DateTime::from_timestamp(
-                val / 1_000,
-                (val % 1_000 * 1_000_000)
-                    .try_into()
-                    .map_err(|_| NumpyDateTimeError::Unrepresentable { unit: *self, val })?,
-            )
-            .unwrap()
-            .naive_utc()),
-            Self::Microseconds => Ok(DateTime::from_timestamp(
-                val / 1_000_000,
-                (val % 1_000_000 * 1_000)
-                    .try_into()
-                    .map_err(|_| NumpyDateTimeError::Unrepresentable { unit: *self, val })?,
-            )
-            .unwrap()
-            .naive_utc()),
-            Self::Nanoseconds => Ok(DateTime::from_timestamp(
-                val / 1_000_000_000,
-                (val % 1_000_000_000)
-                    .try_into()
-                    .map_err(|_| NumpyDateTimeError::Unrepresentable { unit: *self, val })?,
-            )
-            .unwrap()
-            .naive_utc()),
+            Self::Years => Ok(Self::datetime_from_years),
+            Self::Months => Ok(Self::datetime_from_months),
+            Self::Weeks => Ok(Self::datetime_from_weeks),
+            Self::Days => Ok(Self::datetime_from_days),
+            Self::Hours => Ok(Self::datetime_from_hours),
+            Self::Minutes => Ok(Self::datetime_from_minutes),
+            Self::Seconds => Ok(Self::datetime_from_seconds),
+            Self::Milliseconds => Ok(Self::datetime_from_milliseconds),
+            Self::Microseconds => Ok(Self::datetime_from_microseconds),
+            Self::Nanoseconds => Ok(Self::datetime_from_nanoseconds),
             _ => Err(NumpyDateTimeError::UnsupportedUnit(*self)),
         }
-        .map(|dt| NaiveDateTime { dt, opts })
     }
 }
 
