@@ -4,20 +4,22 @@ use crate::ffi::*;
 use crate::opt::*;
 use crate::util::unlikely;
 
+use pyo3::prelude::*;
+use pyo3::types::{PyBytes, PyString};
 use serde::ser::{Serialize, Serializer};
 
 #[repr(transparent)]
-struct StrWithSurrogates {
-    ptr: *mut pyo3::ffi::PyObject,
+struct StrWithSurrogates<'a, 'py> {
+    obj: Borrowed<'a, 'py, PyString>,
 }
 
-impl StrWithSurrogates {
-    pub fn new(ptr: *mut pyo3::ffi::PyObject) -> Self {
-        StrWithSurrogates { ptr: ptr }
+impl<'a, 'py> StrWithSurrogates<'a, 'py> {
+    pub fn new(obj: Borrowed<'a, 'py, PyString>) -> Self {
+        Self { obj: obj }
     }
 }
 
-impl Serialize for StrWithSurrogates {
+impl Serialize for StrWithSurrogates<'_, '_> {
     #[inline(never)]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -25,46 +27,45 @@ impl Serialize for StrWithSurrogates {
     {
         unsafe {
             let ptr = pyo3::ffi::PyUnicode_AsEncodedString(
-                self.ptr,
+                self.obj.as_ptr(),
                 c"UTF-8".as_ptr(),
                 c"replace".as_ptr(),
             );
             if unlikely(ptr.is_null()) {
                 return Err(serde::ser::Error::custom("invalid string"));
             }
-            let slice = pybytes_as_bytes(ptr);
-            let uni = std::str::from_utf8_unchecked(slice);
-            let res = serializer.serialize_str(uni);
-            pyo3::ffi::Py_DECREF(ptr);
-            res
+            let obj = Bound::from_owned_ptr(self.obj.py(), ptr).cast_into_unchecked::<PyBytes>();
+            let uni = std::str::from_utf8_unchecked(obj.as_bytes());
+            serializer.serialize_str(uni)
         }
     }
 }
 
-pub struct Str {
-    ptr: *mut pyo3::ffi::PyObject,
+pub struct Str<'a, 'py> {
+    obj: Borrowed<'a, 'py, PyString>,
     opts: Opt,
 }
 
-impl Str {
-    pub fn new(ptr: *mut pyo3::ffi::PyObject, opts: Opt) -> Self {
-        Str {
-            ptr: ptr,
+impl<'a, 'py> Str<'a, 'py> {
+    #[inline]
+    pub fn try_new(obj: BorrowedWithType<'a, 'py>, opts: Opt) -> Option<Self> {
+        Some(Self {
+            obj: obj.cast_exact::<PyString>()?,
             opts: opts,
-        }
+        })
     }
 }
 
-impl Serialize for Str {
+impl Serialize for Str<'_, '_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        match unicode_to_str(self.ptr) {
+        match unicode_to_str(self.obj) {
             Ok(val) => serializer.serialize_str(val),
             Err(err) => {
                 if self.opts & REPLACE_SURROGATES != 0 {
-                    StrWithSurrogates::new(self.ptr).serialize(serializer)
+                    StrWithSurrogates::new(self.obj).serialize(serializer)
                 } else {
                     Err(serde::ser::Error::custom(err))
                 }
@@ -73,31 +74,32 @@ impl Serialize for Str {
     }
 }
 
-pub struct StrSubclass {
-    ptr: *mut pyo3::ffi::PyObject,
+pub struct StrSubclass<'a, 'py> {
+    obj: Borrowed<'a, 'py, PyString>,
     opts: Opt,
 }
 
-impl StrSubclass {
-    pub fn new(ptr: *mut pyo3::ffi::PyObject, opts: Opt) -> Self {
-        StrSubclass {
-            ptr: ptr,
+impl<'a, 'py> StrSubclass<'a, 'py> {
+    #[inline]
+    pub fn try_new(obj: BorrowedWithType<'a, 'py>, opts: Opt) -> Option<Self> {
+        Some(Self {
+            obj: obj.cast::<PyString>()?,
             opts: opts,
-        }
+        })
     }
 }
 
-impl Serialize for StrSubclass {
+impl Serialize for StrSubclass<'_, '_> {
     #[inline(never)]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        match unicode_to_str_via_ffi(self.ptr) {
+        match unicode_to_str_via_ffi(self.obj) {
             Ok(val) => serializer.serialize_str(val),
             Err(err) => {
                 if self.opts & REPLACE_SURROGATES != 0 {
-                    StrWithSurrogates::new(self.ptr).serialize(serializer)
+                    StrWithSurrogates::new(self.obj).serialize(serializer)
                 } else {
                     Err(serde::ser::Error::custom(err))
                 }

@@ -1,7 +1,9 @@
-use crate::ffi::*;
 use crate::msgpack;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::ffi::*;
-use std::os::raw::{c_char, c_int, c_uint, c_void};
+use pyo3::prelude::*;
+use pyo3::types::{PyBytes, PyDict, PyTuple};
+use std::os::raw::{c_int, c_uint, c_void};
 use std::ptr::null_mut;
 
 #[repr(C)]
@@ -16,34 +18,31 @@ unsafe extern "C" fn fragment_new(
     args: *mut PyObject,
     kwds: *mut PyObject,
 ) -> *mut PyObject {
-    if Py_SIZE(args) != 1 || (!kwds.is_null() && pydict_size(kwds) != 0) {
-        PyErr_SetString(
-            PyExc_TypeError,
-            c"Fragment.__new__() takes 1 positional argument".as_ptr(),
-        );
+    let py = Python::assume_attached();
+    let args = Borrowed::from_ptr(py, args).cast_unchecked::<PyTuple>();
+    let kwds = Borrowed::from_ptr_or_opt(py, kwds).map(|v| v.cast_unchecked::<PyDict>());
+    if args.len() != 1 || kwds.is_some_and(|v| v.len() != 0) {
+        PyTypeError::new_err("Fragment.__new__() takes 1 positional argument").restore(py);
         return null_mut();
     }
-    let data = pytuple_get_item(args, 0);
-    if PyBytes_Check(data) == 0 {
-        PyErr_SetString(
-            PyExc_TypeError,
-            c"Fragment.__new__() first argument must be bytes".as_ptr(),
-        );
+    let data = args.get_item(0).unwrap();
+    if !data.is_instance_of::<PyBytes>() {
+        PyTypeError::new_err("Fragment.__new__() first argument must be bytes").restore(py);
         return null_mut();
     }
-    let contents = pybytes_as_bytes(data);
+    let contents = data.cast_unchecked::<PyBytes>().as_bytes();
     let mut validator = msgpack::Validator::new(contents);
     match validator.validate() {
         Ok(()) => (),
         Err(err) => {
-            PyErr_SetString(PyExc_ValueError, err.to_string().as_ptr().cast::<c_char>());
+            PyValueError::new_err(err.to_string()).restore(py);
             return null_mut();
         }
     }
-    let obj = (*subtype).tp_alloc.unwrap()(subtype, 0);
-    Py_INCREF(data);
-    (*obj.cast::<PyFragment>()).data = data;
-    obj
+    let op = (*subtype).tp_alloc.unwrap()(subtype, 0);
+    let obj = &mut *op.cast::<PyFragment>();
+    obj.data = data.into_ptr();
+    op
 }
 
 #[no_mangle]
@@ -54,7 +53,7 @@ unsafe extern "C" fn fragment_dealloc(op: *mut PyObject) {
     Py_DECREF(ob_type.cast::<PyObject>());
 }
 
-pub unsafe fn create_fragment_type() -> *mut PyTypeObject {
+pub fn create_fragment_type<'py>(py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
     let mut slots: [PyType_Slot; 3] = [
         PyType_Slot {
             slot: Py_tp_new,
@@ -76,5 +75,5 @@ pub unsafe fn create_fragment_type() -> *mut PyTypeObject {
         flags: Py_TPFLAGS_DEFAULT as c_uint,
         slots: slots.as_mut_ptr(),
     };
-    PyType_FromSpec(&mut spec).cast::<PyTypeObject>()
+    unsafe { Bound::from_owned_ptr_or_err(py, PyType_FromSpec(&mut spec)) }
 }

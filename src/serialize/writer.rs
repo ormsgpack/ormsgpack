@@ -2,8 +2,9 @@
 
 use crate::io::WriteSlices;
 use pyo3::ffi::*;
+use pyo3::prelude::*;
+use pyo3::types::PyBytes;
 use std::mem::ManuallyDrop;
-use std::ptr::NonNull;
 
 const BUFFER_LENGTH: usize = 1024;
 
@@ -27,11 +28,11 @@ impl BytesWriter {
         }
     }
 
-    pub fn finish(self) -> NonNull<PyObject> {
+    pub fn finish<'py>(self, py: Python<'py>) -> Bound<'py, PyBytes> {
         unsafe {
             let this = ManuallyDrop::new(self);
             let bytes = compat::PyBytesWriter_FinishWithSize(this.writer, this.len as isize);
-            NonNull::new_unchecked(bytes)
+            Bound::from_owned_ptr(py, bytes).cast_into_unchecked::<PyBytes>()
         }
     }
 

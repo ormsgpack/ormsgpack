@@ -2,18 +2,20 @@
 
 use crate::ffi::unicode::*;
 use pyo3::ffi::*;
+use pyo3::prelude::*;
+use pyo3::types::PyString;
 
 #[inline(always)]
-pub fn hash_str(op: *mut PyObject) -> Py_hash_t {
-    unsafe { PyObject_Hash(op) }
+pub fn hash_str(obj: Borrowed<'_, '_, PyString>) -> Py_hash_t {
+    unsafe { PyObject_Hash(obj.as_ptr()) }
 }
 
 #[inline(always)]
-pub fn unicode_from_str(buf: &str) -> *mut PyObject {
-    unsafe { PyUnicode_FromStringAndSize(buf.as_ptr().cast::<i8>(), buf.len() as isize) }
+pub fn unicode_from_str<'py>(py: Python<'py>, buf: &str) -> Bound<'py, PyString> {
+    PyString::new(py, buf)
 }
 
 #[inline(always)]
-pub fn unicode_to_str(op: *mut PyObject) -> Result<&'static str, UnicodeError> {
-    unicode_to_str_via_ffi(op)
+pub fn unicode_to_str<'a>(obj: Borrowed<'a, '_, PyString>) -> Result<&'a str, UnicodeError> {
+    unicode_to_str_via_ffi(obj)
 }

@@ -2,6 +2,8 @@
 
 use crate::ffi::int::*;
 use pyo3::ffi::*;
+use pyo3::prelude::*;
+use pyo3::types::PyInt;
 
 #[repr(C)]
 #[cfg(Py_3_12)]
@@ -20,24 +22,28 @@ struct PyLongObject {
 const SIGN_MASK: usize = 3;
 
 #[cfg(Py_3_12)]
-pub unsafe fn pylong_is_positive(op: *mut PyObject) -> bool {
-    (*op.cast::<PyLongObject>()).long_value.lv_tag & SIGN_MASK == 0
+pub fn pylong_is_positive(obj: Borrowed<'_, '_, PyInt>) -> bool {
+    let op = obj.as_ptr();
+    let tag = unsafe { (*op.cast::<PyLongObject>()).long_value.lv_tag };
+    tag & SIGN_MASK == 0
 }
 
 #[cfg(not(Py_3_12))]
-pub unsafe fn pylong_is_positive(op: *mut PyObject) -> bool {
-    (*op.cast::<PyVarObject>()).ob_size > 0
+pub fn pylong_is_positive(obj: Borrowed<'_, '_, PyInt>) -> bool {
+    let op = obj.as_ptr();
+    let size = unsafe { (*op.cast::<PyVarObject>()).ob_size };
+    size > 0
 }
 
 impl Int {
-    pub fn new(op: *mut PyObject) -> Result<Self, IntError> {
-        if unsafe { pylong_is_positive(op) } {
-            match pylong_to_u64(op) {
+    pub fn new(obj: Borrowed<'_, '_, PyInt>) -> Result<Self, IntError> {
+        if pylong_is_positive(obj) {
+            match pylong_to_u64(obj) {
                 Some(val) => Ok(Int::Unsigned(val)),
                 None => Err(IntError::Overflow),
             }
         } else {
-            match pylong_to_i64(op) {
+            match pylong_to_i64(obj) {
                 Some(val) => Ok(Int::Signed(val)),
                 None => Err(IntError::Overflow),
             }
