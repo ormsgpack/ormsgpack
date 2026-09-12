@@ -2,6 +2,8 @@
 
 use crate::util::unlikely;
 use pyo3::ffi::*;
+use pyo3::prelude::*;
+use pyo3::types::PyString;
 
 #[derive(Debug)]
 pub enum UnicodeError {
@@ -17,10 +19,12 @@ impl std::fmt::Display for UnicodeError {
 }
 
 #[inline(never)]
-pub fn unicode_to_str_via_ffi(op: *mut PyObject) -> Result<&'static str, UnicodeError> {
+pub fn unicode_to_str_via_ffi<'a>(
+    obj: Borrowed<'a, '_, PyString>,
+) -> Result<&'a str, UnicodeError> {
     unsafe {
         let mut size: Py_ssize_t = 0;
-        let ptr = PyUnicode_AsUTF8AndSize(op, &mut size).cast::<u8>();
+        let ptr = PyUnicode_AsUTF8AndSize(obj.as_ptr(), &mut size).cast::<u8>();
         if unlikely(ptr.is_null()) {
             PyErr_Clear();
             Err(UnicodeError::Surrogates)

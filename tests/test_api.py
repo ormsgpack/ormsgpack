@@ -203,12 +203,12 @@ def test_unpackb_args(args: list[bytes], kwargs: dict[str, None]) -> None:
     if args:
         assert ormsgpack.unpackb(*args, **kwargs) is None
     else:
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             ormsgpack.unpackb(*args, **kwargs)
 
 
 def test_unpackb_unknown_kwarg() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         ormsgpack.unpackb(b"\xc0", zxc=None)  # type: ignore[call-arg]
 
 

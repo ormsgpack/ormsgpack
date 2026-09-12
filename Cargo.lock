@@ -53,6 +53,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "heck"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -112,34 +118,54 @@ dependencies = [
 
 [[package]]
 name = "pyo3"
-version = "0.29.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4688ddedf473e32662b9b067670129a8afb8c18e351482c70d62ba4a88171e8b"
+version = "0.30.0"
+source = "git+https://github.com/PyO3/pyo3.git?branch=release-0.30#2f9dd5324e71f7db5a0146b397918ba38246eb1d"
 dependencies = [
  "libc",
  "once_cell",
  "portable-atomic",
  "pyo3-build-config",
  "pyo3-ffi",
+ "pyo3-macros",
 ]
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.29.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f41027e41b4bd03f6e60f9f417fe24a6341a6bb744edd62b6f709f2a52ea30e9"
+version = "0.30.0"
+source = "git+https://github.com/PyO3/pyo3.git?branch=release-0.30#2f9dd5324e71f7db5a0146b397918ba38246eb1d"
 dependencies = [
  "target-lexicon",
 ]
 
 [[package]]
 name = "pyo3-ffi"
-version = "0.29.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e591a95526fead067432c3b3a33fc74770b87b1e04e73671090d9c2055a2b327"
+version = "0.30.0"
+source = "git+https://github.com/PyO3/pyo3.git?branch=release-0.30#2f9dd5324e71f7db5a0146b397918ba38246eb1d"
 dependencies = [
  "libc",
  "pyo3-build-config",
+]
+
+[[package]]
+name = "pyo3-macros"
+version = "0.30.0"
+source = "git+https://github.com/PyO3/pyo3.git?branch=release-0.30#2f9dd5324e71f7db5a0146b397918ba38246eb1d"
+dependencies = [
+ "proc-macro2",
+ "pyo3-macros-backend",
+ "quote",
+ "syn 3.0.2",
+]
+
+[[package]]
+name = "pyo3-macros-backend"
+version = "0.30.0"
+source = "git+https://github.com/PyO3/pyo3.git?branch=release-0.30#2f9dd5324e71f7db5a0146b397918ba38246eb1d"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.2",
 ]
 
 [[package]]

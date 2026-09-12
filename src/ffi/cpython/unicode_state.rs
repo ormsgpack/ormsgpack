@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use pyo3::ffi::*;
+use pyo3::prelude::*;
+use pyo3::types::PyString;
 use std::ffi::c_void;
 
 // The unicode object state
@@ -38,27 +40,31 @@ const STATE_COMPACT_INDEX: usize = STATE_KIND_INDEX + 3;
 const STATE_ASCII_INDEX: usize = STATE_COMPACT_INDEX + 1;
 
 #[inline(always)]
-pub unsafe fn pyunicode_kind(op: *mut PyObject) -> u32 {
-    let state = (*op.cast::<PyASCIIObject>()).state;
+pub fn pyunicode_kind(obj: Borrowed<'_, '_, PyString>) -> u32 {
+    let op = obj.as_ptr();
+    let state = unsafe { (*op.cast::<PyASCIIObject>()).state };
     (state >> STATE_KIND_INDEX) & 7
 }
 
 #[inline(always)]
-pub unsafe fn pyunicode_is_compact(op: *mut PyObject) -> bool {
-    let state = (*op.cast::<PyASCIIObject>()).state;
+pub fn pyunicode_is_compact(obj: Borrowed<'_, '_, PyString>) -> bool {
+    let op = obj.as_ptr();
+    let state = unsafe { (*op.cast::<PyASCIIObject>()).state };
     state & (1 << STATE_COMPACT_INDEX) != 0
 }
 
 #[inline(always)]
-pub unsafe fn pyunicode_is_ascii(op: *mut PyObject) -> bool {
-    let state = (*op.cast::<PyASCIIObject>()).state;
+pub fn pyunicode_is_ascii(obj: Borrowed<'_, '_, PyString>) -> bool {
+    let op = obj.as_ptr();
+    let state = unsafe { (*op.cast::<PyASCIIObject>()).state };
     state & (1 << STATE_ASCII_INDEX) != 0
 }
 
 #[inline(always)]
-pub unsafe fn pyunicode_compact_data(op: *mut PyObject) -> *mut c_void {
-    debug_assert!(pyunicode_is_compact(op));
-    if pyunicode_is_ascii(op) {
+pub unsafe fn pyunicode_compact_data(obj: Borrowed<'_, '_, PyString>) -> *mut c_void {
+    debug_assert!(pyunicode_is_compact(obj));
+    let op = obj.as_ptr();
+    if pyunicode_is_ascii(obj) {
         op.cast::<PyASCIIObject>().offset(1).cast::<c_void>()
     } else {
         op.cast::<PyCompactUnicodeObject>()
