@@ -49,7 +49,7 @@ unsafe extern "C" fn fragment_new(
 #[no_mangle]
 unsafe extern "C" fn fragment_dealloc(op: *mut PyObject) {
     Py_DECREF((*op.cast::<PyFragment>()).data);
-    (*ob_type!(op)).tp_free.unwrap()(op.cast::<c_void>());
+    (*Py_TYPE(op)).tp_free.unwrap()(op.cast::<c_void>());
 }
 
 pub unsafe fn create_fragment_type() -> *mut PyTypeObject {

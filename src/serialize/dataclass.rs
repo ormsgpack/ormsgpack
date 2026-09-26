@@ -71,7 +71,7 @@ impl Serialize for Dataclass<'_> {
         }
 
         let dict = {
-            let ob_type = ob_type!(self.ptr);
+            let ob_type = unsafe { pyo3::ffi::Py_TYPE(self.ptr) };
             if has_slots(ob_type, self.state) {
                 std::ptr::null_mut()
             } else {

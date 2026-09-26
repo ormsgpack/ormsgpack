@@ -93,7 +93,7 @@ impl<'a> PyObject<'a> {
     where
         S: Serializer,
     {
-        let ob_type = ob_type!(self.ptr);
+        let ob_type = unsafe { pyo3::ffi::Py_TYPE(self.ptr) };
 
         if self.opts & PASSTHROUGH_DATETIME == 0 {
             let datetime_api = unsafe { *pyo3::ffi::PyDateTimeAPI() };
@@ -122,7 +122,11 @@ impl<'a> PyObject<'a> {
             return UUID::new(self.ptr, self.state).serialize(serializer);
         }
 
-        if ob_type!(ob_type) == unsafe { (*self.state).enum_type } {
+        let is_enum = unsafe {
+            let ob_type = pyo3::ffi::Py_TYPE(ob_type.cast());
+            ob_type == (*self.state).enum_type
+        };
+        if is_enum {
             if self.opts & PASSTHROUGH_ENUM == 0 {
                 return Enum::new(self.ptr, self.state, self.opts, self.default)
                     .serialize(serializer);
@@ -251,7 +255,7 @@ impl Serialize for PyObject<'_> {
     where
         S: Serializer,
     {
-        let ob_type = ob_type!(self.ptr);
+        let ob_type = unsafe { pyo3::ffi::Py_TYPE(self.ptr) };
         if ob_type == &raw mut pyo3::ffi::PyUnicode_Type {
             Str::new(self.ptr, self.opts).serialize(serializer)
         } else if ob_type == &raw mut pyo3::ffi::PyBytes_Type {
@@ -303,7 +307,7 @@ impl DictKey {
     where
         S: Serializer,
     {
-        let ob_type = ob_type!(self.ptr);
+        let ob_type = unsafe { pyo3::ffi::Py_TYPE(self.ptr) };
 
         let datetime_api = unsafe { *pyo3::ffi::PyDateTimeAPI() };
         if ob_type == datetime_api.DateTimeType {
@@ -330,7 +334,11 @@ impl DictKey {
             return UUID::new(self.ptr, self.state).serialize(serializer);
         }
 
-        if ob_type!(ob_type) == unsafe { (*self.state).enum_type } {
+        let is_enum = unsafe {
+            let ob_type = pyo3::ffi::Py_TYPE(ob_type.cast());
+            ob_type == (*self.state).enum_type
+        };
+        if is_enum {
             return EnumDictKey::new(self.ptr, self.state, self.opts).serialize(serializer);
         }
 
@@ -359,7 +367,7 @@ impl Serialize for DictKey {
     where
         S: Serializer,
     {
-        let ob_type = ob_type!(self.ptr);
+        let ob_type = unsafe { pyo3::ffi::Py_TYPE(self.ptr) };
         if ob_type == &raw mut pyo3::ffi::PyUnicode_Type {
             Str::new(self.ptr, self.opts).serialize(serializer)
         } else if ob_type == &raw mut pyo3::ffi::PyBytes_Type {

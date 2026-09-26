@@ -34,12 +34,12 @@ pub fn deserialize(
     ext_hook: Option<NonNull<pyo3::ffi::PyObject>>,
     opts: Opt,
 ) -> Result<NonNull<pyo3::ffi::PyObject>, DeserializeError<'static>> {
-    let obj_type_ptr = ob_type!(ptr);
+    let ob_type = unsafe { pyo3::ffi::Py_TYPE(ptr) };
 
-    if obj_type_ptr == &raw mut pyo3::ffi::PyBytes_Type {
+    if ob_type == &raw mut pyo3::ffi::PyBytes_Type {
         let contents = unsafe { pybytes_as_bytes(ptr) };
         deserialize_slice(contents, state, ext_hook, opts)
-    } else if obj_type_ptr == &raw mut pyo3::ffi::PyMemoryView_Type {
+    } else if ob_type == &raw mut pyo3::ffi::PyMemoryView_Type {
         if let Some(buffer) = unsafe { Buffer::get(ptr) } {
             let contents = buffer.as_bytes();
             deserialize_slice(contents, state, ext_hook, opts)
@@ -48,7 +48,7 @@ pub fn deserialize(
                 "Input type memoryview must be a C contiguous buffer",
             )))
         }
-    } else if obj_type_ptr == &raw mut pyo3::ffi::PyByteArray_Type {
+    } else if ob_type == &raw mut pyo3::ffi::PyByteArray_Type {
         let contents = unsafe { pybytearray_as_bytes(ptr) };
         deserialize_slice(contents, state, ext_hook, opts)
     } else {

@@ -66,7 +66,8 @@ impl Serialize for PydanticModel<'_> {
             unsafe { pyo3::ffi::Py_DECREF(dict) };
             res
         } else {
-            let res = if ob_type!(extra_dict) == &raw mut pyo3::ffi::PyDict_Type {
+            let ob_type = unsafe { pyo3::ffi::Py_TYPE(extra_dict) };
+            let res = if ob_type == &raw mut pyo3::ffi::PyDict_Type {
                 self.serialize_with_extra(serializer, dict, extra_dict)
             } else {
                 self.serialize_with_no_extra(serializer, dict)
@@ -96,7 +97,8 @@ impl PydanticModel<'_> {
         let mut items: SmallVec<[(&str, *mut pyo3::ffi::PyObject); 8]> =
             SmallVec::with_capacity(len);
         for (key, value) in PyDictIter::from_pyobject(dict) {
-            if unlikely(ob_type!(key.as_ptr()) != &raw mut pyo3::ffi::PyUnicode_Type) {
+            let ob_type = unsafe { pyo3::ffi::Py_TYPE(key.as_ptr()) };
+            if unlikely(ob_type != &raw mut pyo3::ffi::PyUnicode_Type) {
                 return Err(serde::ser::Error::custom(KEY_MUST_BE_STR));
             }
             let key_as_str = unicode_to_str(key.as_ptr()).map_err(serde::ser::Error::custom)?;
@@ -136,7 +138,8 @@ impl PydanticModel<'_> {
         let mut items: SmallVec<[(&str, *mut pyo3::ffi::PyObject); 8]> =
             SmallVec::with_capacity(len);
         for (key, value) in iter {
-            if unlikely(ob_type!(key.as_ptr()) != &raw mut pyo3::ffi::PyUnicode_Type) {
+            let ob_type = unsafe { pyo3::ffi::Py_TYPE(key.as_ptr()) };
+            if unlikely(ob_type != &raw mut pyo3::ffi::PyUnicode_Type) {
                 return Err(serde::ser::Error::custom(KEY_MUST_BE_STR));
             }
             let key_as_str = unicode_to_str(key.as_ptr()).map_err(serde::ser::Error::custom)?;

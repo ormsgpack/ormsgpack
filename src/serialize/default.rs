@@ -18,7 +18,10 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
             Error::InvalidType(ptr) => {
-                let name = unsafe { CStr::from_ptr((*ob_type!(ptr)).tp_name).to_string_lossy() };
+                let name = unsafe {
+                    let ob_type = pyo3::ffi::Py_TYPE(ptr);
+                    CStr::from_ptr((*ob_type).tp_name).to_string_lossy()
+                };
                 write!(f, "Type is not msgpack serializable: {name}")
             }
             Error::RecursionLimitReached => f.write_str("Recursion limit for default hook reached"),

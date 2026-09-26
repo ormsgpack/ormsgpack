@@ -1,11 +1,5 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-macro_rules! ob_type {
-    ($obj:expr) => {
-        unsafe { (*$obj.cast::<pyo3::ffi::PyObject>()).ob_type }
-    };
-}
-
 // TODO: replace with core::hint::cold_path once 1.95.0 is old enough
 #[inline(always)]
 #[cold]
