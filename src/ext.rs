@@ -49,9 +49,11 @@ unsafe extern "C" fn ext_new(
 
 #[no_mangle]
 unsafe extern "C" fn ext_dealloc(op: *mut PyObject) {
+    let ob_type = Py_TYPE(op);
     Py_DECREF((*op.cast::<PyExt>()).tag);
     Py_DECREF((*op.cast::<PyExt>()).data);
-    (*Py_TYPE(op)).tp_free.unwrap()(op.cast::<c_void>());
+    (*ob_type).tp_free.unwrap()(op.cast::<c_void>());
+    Py_DECREF(ob_type.cast::<PyObject>());
 }
 
 pub unsafe fn create_ext_type() -> *mut PyTypeObject {
