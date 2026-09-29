@@ -61,3 +61,11 @@ provided as serialized, e.g. from a cache or an extension module, as the nested 
 not need to be deserialized.
 
 See the :ref:`api` and :ref:`types` sections for more details.
+
+Input objects must not be modified during serialization or deserialization, either from
+another thread or from a reentrant callback such as `default` or `ext_hook`. Doing so is
+outside ormsgpack's contract and may crash the process. For performance, ormsgpack uses
+borrowed rather than strong references to items in mutable collections, avoiding per-item
+reference-count operations, and reads `bytearray` objects without copying them.
+Reference-count operations are particularly expensive on free-threaded builds because PyO3
+delegates them to CPython rather than implementing the logic inline.
