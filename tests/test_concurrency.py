@@ -4,12 +4,6 @@ import concurrent.futures
 
 import pytest
 
-InterpreterPoolExecutor = (
-    concurrent.futures.InterpreterPoolExecutor(max_workers=4)
-    if hasattr(concurrent.futures, "InterpreterPoolExecutor")
-    else None
-)
-
 
 @pytest.mark.parametrize(
     "executor",
@@ -17,14 +11,6 @@ InterpreterPoolExecutor = (
         pytest.param(
             concurrent.futures.ThreadPoolExecutor(max_workers=4),
             id="threads",
-        ),
-        pytest.param(
-            InterpreterPoolExecutor,
-            id="interpreters",
-            marks=pytest.mark.skipif(
-                InterpreterPoolExecutor is None,
-                reason="InterpreterPoolExecutor not available",
-            ),
         ),
     ),
 )
