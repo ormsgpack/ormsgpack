@@ -36,6 +36,8 @@ jobs:
           - '3.13'
           - '3.14'
           - '3.14t'
+          - '3.15'
+          - '3.15t'
         target:
           - 'x86_64-unknown-linux-gnu'
           - 'aarch64-unknown-linux-gnu'
@@ -55,6 +57,8 @@ jobs:
             runs-on: 'windows-11-arm'
         exclude:
           - python-version: '3.14t'
+            target: 'aarch64-pc-windows-msvc'
+          - python-version: '3.15t'
             target: 'aarch64-pc-windows-msvc'
     env:
       UV_PYTHON: ${{ matrix.python-version }}
@@ -94,6 +98,7 @@ jobs:
           - '3.12'
           - '3.13'
           - '3.14'
+          - '3.15'
         platform:
           - 'linux/amd64'
           - 'linux/arm64'

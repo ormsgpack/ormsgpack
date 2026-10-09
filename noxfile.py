@@ -28,6 +28,7 @@ def lint(session: nox.Session) -> None:
     python=[
         *PYTHON_VERSIONS,
         "3.14t",
+        "3.15t",
         "graalpy-3.11",
         "graalpy-3.12",
         "graalpy-3.13",
