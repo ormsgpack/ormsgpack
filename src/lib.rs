@@ -35,6 +35,8 @@ fn ormsgpack(module: &Bound<'_, PyModule>) -> PyResult<()> {
 
     module.add_function(wrap_pyfunction!(packb, module)?)?;
     module.add_function(wrap_pyfunction!(unpackb, module)?)?;
+    #[cfg(check_leaks)]
+    module.add_function(wrap_pyfunction!(is_cached_key, module)?)?;
     module.add("__version__", env!("CARGO_PKG_VERSION"))?;
     module.add("Ext", state.serialize.ext.type_object.bind(py))?;
     module.add("Fragment", state.serialize.fragment.type_object.bind(py))?;
@@ -121,4 +123,15 @@ fn unpackb<'py>(
         ext_hook.map(Bound::as_borrowed),
         opts,
     )
+}
+
+#[cfg(check_leaks)]
+#[pyfunction]
+fn is_cached_key(obj: &Bound<'_, PyAny>) -> bool {
+    STATE
+        .get(obj.py())
+        .unwrap()
+        .deserialize
+        .key_map
+        .contains(obj)
 }

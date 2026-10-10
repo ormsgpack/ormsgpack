@@ -628,6 +628,9 @@ def test_numpy_datetime64_omit_microseconds() -> None:
     )
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning"
+)
 def test_numpy_datetime64_unsupported_unit() -> None:
     with pytest.raises(ormsgpack.MsgpackEncodeError):
         ormsgpack.packb(

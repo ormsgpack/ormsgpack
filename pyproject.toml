@@ -67,6 +67,10 @@ docs = [
     "sphinx",
 ]
 
+memray = [
+    "pytest-memray",
+]
+
 [build-system]
 build-backend = "maturin"
 requires = ["maturin>=1.0,<2.0"]

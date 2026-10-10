@@ -5,6 +5,7 @@ import datetime
 import inspect
 import platform
 import re
+from collections.abc import Callable
 
 import msgpack
 import pytest
@@ -108,6 +109,27 @@ def test_invalid_data(value: bytes) -> None:
 
     with pytest.raises(ValueError):
         ormsgpack.Fragment(value)
+
+
+@pytest.mark.parametrize(
+    "obj, option",
+    (
+        pytest.param([1000, 2000], 0, id="list"),
+        pytest.param([[1000], [2000]], 0, id="nested-list"),
+        pytest.param({"a" * 65: 1000, "b" * 65: 2000}, 0, id="dict"),
+        pytest.param([{"a" * 65: 1000}, {"b" * 65: 2000}], 0, id="nested-dict"),
+        pytest.param(
+            {1000: 1000, 2000: 2000}, ormsgpack.OPT_NON_STR_KEYS, id="dict-int-key"
+        ),
+        pytest.param(
+            {(1000, 2000): 1000}, ormsgpack.OPT_NON_STR_KEYS, id="dict-tuple-key"
+        ),
+    ),
+)
+def test_truncated_data(obj: object, option: int) -> None:
+    packed = msgpack.packb(obj)[:-1]
+    with pytest.raises(ormsgpack.MsgpackDecodeError):
+        ormsgpack.unpackb(packed, option=option)
 
 
 def test_unpackb_recursion() -> None:
@@ -327,19 +349,26 @@ def test_bytes_buffer() -> None:
     assert ormsgpack.packb([a, b, c]) == msgpack.packb([a, b, c])
 
 
+@pytest.fixture
+def function_flags() -> Callable[[object], int]:
+    get_flags = ctypes.pythonapi["PyCFunction_GetFlags"]
+    get_flags.argtypes = [ctypes.py_object]
+    get_flags.restype = ctypes.c_int
+    return get_flags
+
+
 @pytest.mark.skipif(
     not hasattr(ctypes, "pythonapi"),
     reason="ctypes.pythonapi not available",
 )
-def test_function_flags() -> None:
+def test_function_flags(function_flags: Callable[[object], int]) -> None:
     """
     Make sure we use fastcall
     """
     FASTCALL = 0x0080
     KEYWORDS = 0x0002
-    ctypes.pythonapi.PyCFunction_GetFlags.argtypes = [ctypes.py_object]
-    packb_flags = ctypes.pythonapi.PyCFunction_GetFlags(ormsgpack.packb)
-    unpackb_flags = ctypes.pythonapi.PyCFunction_GetFlags(ormsgpack.unpackb)
+    packb_flags = function_flags(ormsgpack.packb)
+    unpackb_flags = function_flags(ormsgpack.unpackb)
     flags = FASTCALL | KEYWORDS
     assert packb_flags & flags == flags
     assert unpackb_flags & flags == flags

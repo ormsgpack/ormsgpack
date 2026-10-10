@@ -65,4 +65,16 @@ impl<const C: usize> KeyMap<C> {
         };
         Ok(entry.bind_borrowed(py).to_owned())
     }
+
+    #[cfg(check_leaks)]
+    pub fn contains(&self, obj: &Bound<'_, PyAny>) -> bool {
+        #[cfg(Py_GIL_DISABLED)]
+        let entries = self.entries.lock().unwrap();
+        #[cfg(not(Py_GIL_DISABLED))]
+        let entries = self.entries.borrow();
+        entries
+            .iter()
+            .flatten()
+            .any(|key| key.as_ptr() == obj.as_ptr())
+    }
 }
