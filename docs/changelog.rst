@@ -1,6 +1,28 @@
 Changelog
 =========
 
+1.13.0 - 2026-10-15
+-------------------
+
+Changed
+~~~~~~~
+
+- Add support for Python 3.15, PyPy 3.12 and GraalPy 3.13
+- Drop support for Python 3.10
+- Add support for built-in ``frozendict``
+- Add ``ormsgpack.Fragment`` to include objects in MessagePack format in
+  ``packb`` output without deserializing and serializing them again
+  (:issue:`521`)
+- Migrate to PyO3's higher-level API
+
+Fixed
+~~~~~
+
+- Fix memory leak when ``unpackb`` fails to decode malformed or truncated
+  arrays or maps (:pr:`626` by :user:`ddraa`)
+- Fix serialization of ``numpy.datetime64`` values before the Unix epoch
+  and reject ``NaT`` and out-of-range values
+
 1.12.2 - 2026-01-18
 -------------------
 
