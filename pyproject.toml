@@ -1,7 +1,7 @@
 [project]
 name = "ormsgpack"
 version = "1.12.2"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -11,7 +11,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -80,7 +79,7 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 88
 src = ["python"]
-target-version = "py310"
+target-version = "py311"
 extend-exclude = ["docs/examples"]
 
 [tool.ruff.lint]
