@@ -5,6 +5,8 @@ import pytest
 
 import ormsgpack
 
+from .params import DictType
+
 
 def test_none() -> None:
     value = None
@@ -12,7 +14,9 @@ def test_none() -> None:
     assert packed == msgpack.packb(value)
     assert ormsgpack.unpackb(packed) == value
 
-    obj = {None: True}
+
+def test_none_dict_key(dict_type: DictType) -> None:
+    obj = dict_type({None: True})
     with pytest.raises(ormsgpack.MsgpackEncodeError):
         ormsgpack.packb(obj)
     packed = ormsgpack.packb(obj, option=ormsgpack.OPT_NON_STR_KEYS)

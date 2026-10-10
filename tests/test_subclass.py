@@ -7,6 +7,8 @@ import pytest
 
 import ormsgpack
 
+from .params import DictType
+
 
 class SubStr(str):
     pass
@@ -53,8 +55,8 @@ def test_subclass_int_64() -> None:
         assert ormsgpack.packb(SubInt(val)) == msgpack.packb(val)
 
 
-def test_subclass_dict() -> None:
-    assert ormsgpack.packb(SubDict({"a": "b"})) == msgpack.packb({"a": "b"})
+def test_subclass_dict(dict_subclass: DictType) -> None:
+    assert ormsgpack.packb(dict_subclass({"a": "b"})) == msgpack.packb({"a": "b"})
 
 
 def test_subclass_list() -> None:
@@ -94,9 +96,10 @@ def test_subclass_circular_list() -> None:
         ormsgpack.packb(obj)
 
 
-def test_subclass_circular_nested() -> None:
-    obj = SubDict({})
-    obj["list"] = SubList([{"obj": obj}])
+def test_subclass_circular_nested(dict_subclass: DictType) -> None:
+    values = SubList([])
+    obj = dict_subclass({"list": values})
+    values.append(dict_subclass({"obj": obj}))
     with pytest.raises(ormsgpack.MsgpackEncodeError):
         ormsgpack.packb(obj)
 
@@ -111,9 +114,11 @@ def test_subclass_int_passthrough() -> None:
         ormsgpack.packb(SubInt(1), option=ormsgpack.OPT_PASSTHROUGH_SUBCLASS)
 
 
-def test_subclass_dict_passthrough() -> None:
+def test_subclass_dict_passthrough(dict_subclass: DictType) -> None:
     with pytest.raises(ormsgpack.MsgpackEncodeError):
-        ormsgpack.packb(SubDict({"a": "b"}), option=ormsgpack.OPT_PASSTHROUGH_SUBCLASS)
+        ormsgpack.packb(
+            dict_subclass({"a": "b"}), option=ormsgpack.OPT_PASSTHROUGH_SUBCLASS
+        )
 
 
 def test_subclass_list_passthrough() -> None:

@@ -2,6 +2,8 @@
 
 use pyo3::ffi::*;
 use pyo3::prelude::*;
+#[cfg(Py_3_15)]
+use pyo3::types::PyFrozenDict;
 use pyo3::types::{PyDict, PyInt, PyList, PyString, PyType};
 use pyo3::PyTypeInfo;
 use std::ffi::CStr;
@@ -105,6 +107,9 @@ impl TypeCheck for PyString {
         unsafe { PyType_HasFeature(type_obj.as_type_ptr(), Py_TPFLAGS_UNICODE_SUBCLASS) != 0 }
     }
 }
+
+#[cfg(Py_3_15)]
+impl TypeCheck for PyFrozenDict {}
 
 #[derive(Clone, Copy)]
 pub struct BorrowedWithType<'a, 'py> {

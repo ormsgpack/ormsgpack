@@ -12,6 +12,8 @@ from dateutil.zoneinfo import get_zonefile_instance
 
 import ormsgpack
 
+from .params import TIMESTAMP_EXT_PARAMS, DictType
+
 try:
     import pendulum
 except ImportError:
@@ -472,35 +474,7 @@ def test_passthrough_datetime_default() -> None:
     ) == msgpack.packb("Thu, 01 Jan 1970 00:00:00 GMT")
 
 
-@pytest.mark.parametrize(
-    ("value", "serialized_value"),
-    (
-        (
-            datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc),
-            b"\xd6\xff\x00\x00\x00\x00",
-        ),
-        (
-            datetime.datetime(2106, 2, 7, 6, 28, 15, tzinfo=datetime.timezone.utc),
-            b"\xd6\xff\xff\xff\xff\xff",
-        ),
-        (
-            datetime.datetime(2106, 2, 7, 6, 28, 16, tzinfo=datetime.timezone.utc),
-            b"\xd7\xff\x00\x00\x00\x01\x00\x00\x00\x00",
-        ),
-        (
-            datetime.datetime(2514, 5, 30, 1, 53, 3, tzinfo=datetime.timezone.utc),
-            b"\xd7\xff\x00\x00\x00\x03\xff\xff\xff\xff",
-        ),
-        (
-            datetime.datetime(2514, 5, 30, 1, 53, 4, tzinfo=datetime.timezone.utc),
-            b"\xc7\x0c\xff\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00",
-        ),
-        (
-            datetime.datetime(9999, 12, 4, 15, 30, 7, tzinfo=datetime.timezone.utc),
-            b"\xc7\x0c\xff\x00\x00\x00\x00\x00\x00\x00:\xff\xd01\x7f",
-        ),
-    ),
-)
+@pytest.mark.parametrize(("value", "serialized_value"), TIMESTAMP_EXT_PARAMS)
 def test_datetime_as_timestamp_ext(
     value: datetime.datetime,
     serialized_value: bytes,
@@ -523,7 +497,14 @@ def test_datetime_as_timestamp_ext(
         == value
     )
 
-    obj = {value: True}
+
+@pytest.mark.parametrize(("value", "serialized_value"), TIMESTAMP_EXT_PARAMS)
+def test_datetime_as_timestamp_ext_dict_key(
+    dict_type: DictType,
+    value: datetime.datetime,
+    serialized_value: bytes,
+) -> None:
+    obj = dict_type({value: True})
     with pytest.raises(ormsgpack.MsgpackEncodeError):
         ormsgpack.packb(obj)
     packed = ormsgpack.packb(

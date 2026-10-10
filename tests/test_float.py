@@ -5,6 +5,8 @@ import pytest
 
 import ormsgpack
 
+from .params import DictType
+
 
 @pytest.mark.parametrize(
     "value",
@@ -34,7 +36,9 @@ def test_float(value: float) -> None:
     assert packed == msgpack.packb(value)
     assert ormsgpack.unpackb(packed) == value
 
-    obj = {value: True}
+
+def test_float_dict_key(dict_type: DictType) -> None:
+    obj = dict_type({1.1: True})
     with pytest.raises(ormsgpack.MsgpackEncodeError):
         ormsgpack.packb(obj)
     packed = ormsgpack.packb(obj, option=ormsgpack.OPT_NON_STR_KEYS)

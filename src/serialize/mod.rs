@@ -14,6 +14,8 @@ mod enum_;
 mod ext;
 mod float;
 mod fragment;
+#[cfg(Py_3_15)]
+mod frozendict;
 mod list;
 mod memoryview;
 mod numpy;

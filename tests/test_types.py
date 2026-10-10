@@ -11,6 +11,8 @@ from pydantic import BaseModel, ConfigDict, create_model
 
 import ormsgpack
 
+from .params import DICT_TYPE_PARAMS, DictType
+
 
 @dataclass(frozen=True)
 class Dataclass:
@@ -91,11 +93,14 @@ TYPE_PARAMS = (
         0,
         id="str subclass",
     ),
-    pytest.param(
-        {"a": "b"},
-        {"a": "b"},
-        0,
-        id="dict",
+    *(
+        pytest.param(
+            dict_type({"a": "b"}),
+            {"a": "b"},
+            0,
+            id=dict_type.__name__,
+        )
+        for dict_type in DICT_TYPE_PARAMS
     ),
     pytest.param(
         [1, 2],
@@ -184,8 +189,10 @@ def test_dataclass(value: object, converted_value: object, option: int) -> None:
 
 
 @pytest.mark.parametrize(("value", "converted_value", "option"), TYPE_PARAMS)
-def test_dict(value: object, converted_value: object, option: int) -> None:
-    obj = {"a": value}
+def test_dict(
+    dict_type: DictType, value: object, converted_value: object, option: int
+) -> None:
+    obj = dict_type({"a": value})
     converted_obj = {"a": converted_value}
 
     packed = ormsgpack.packb(obj, default=default, option=option)
@@ -284,8 +291,10 @@ def test_default(value: object, converted_value: object, option: int) -> None:
         }
     ],
 )
-def test_dict_key(value: object, converted_value: object, option: int) -> None:
-    obj = {value: True}
+def test_dict_key(
+    dict_type: DictType, value: object, converted_value: object, option: int
+) -> None:
+    obj = dict_type({value: True})
     converted_obj = {converted_value: True}
 
     with pytest.raises(ormsgpack.MsgpackEncodeError):
@@ -306,18 +315,26 @@ def test_dict_key(value: object, converted_value: object, option: int) -> None:
         }
     ],
 )
-def test_invalid_dict_key(value: object, converted_value: object, option: int) -> None:
+def test_invalid_dict_key(
+    dict_type: DictType, value: object, converted_value: object, option: int
+) -> None:
     with pytest.raises(ormsgpack.MsgpackEncodeError):
-        ormsgpack.packb({value: True}, option=option | ormsgpack.OPT_NON_STR_KEYS)
+        ormsgpack.packb(
+            dict_type({value: True}), option=option | ormsgpack.OPT_NON_STR_KEYS
+        )
 
     class TestEnum(enum.Enum):
         A = value
 
     with pytest.raises(ormsgpack.MsgpackEncodeError):
-        ormsgpack.packb({TestEnum.A: True}, option=option | ormsgpack.OPT_NON_STR_KEYS)
+        ormsgpack.packb(
+            dict_type({TestEnum.A: True}), option=option | ormsgpack.OPT_NON_STR_KEYS
+        )
 
     with pytest.raises(ormsgpack.MsgpackEncodeError):
-        ormsgpack.packb({(value,): True}, option=option | ormsgpack.OPT_NON_STR_KEYS)
+        ormsgpack.packb(
+            dict_type({(value,): True}), option=option | ormsgpack.OPT_NON_STR_KEYS
+        )
 
 
 def test_object() -> None:

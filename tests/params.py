@@ -1,6 +1,20 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import builtins
+import datetime
+import sys
+from typing import TypeAlias
+
 import pytest
+
+if sys.version_info >= (3, 15):
+    DictType: TypeAlias = type[
+        dict[object, object] | builtins.frozendict[object, object]
+    ]
+    DICT_TYPE_PARAMS: list[DictType] = [dict, builtins.frozendict]
+else:
+    DictType: TypeAlias = type[dict[object, object]]
+    DICT_TYPE_PARAMS = [dict]
 
 INT_PARAMS = (
     pytest.param(1, id="positive fixint"),
@@ -51,4 +65,37 @@ EXT_PARAMS = (
     pytest.param(b"a" * 32, id="ext 8"),
     pytest.param(b"a" * 256, id="ext 16"),
     pytest.param(b"a" * 65536, id="ext 32"),
+)
+
+TIMESTAMP_EXT_PARAMS = (
+    pytest.param(
+        datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc),
+        b"\xd6\xff\x00\x00\x00\x00",
+        id="timestamp32 min",
+    ),
+    pytest.param(
+        datetime.datetime(2106, 2, 7, 6, 28, 15, tzinfo=datetime.timezone.utc),
+        b"\xd6\xff\xff\xff\xff\xff",
+        id="timestamp32 max",
+    ),
+    pytest.param(
+        datetime.datetime(2106, 2, 7, 6, 28, 16, tzinfo=datetime.timezone.utc),
+        b"\xd7\xff\x00\x00\x00\x01\x00\x00\x00\x00",
+        id="timestamp64 required",
+    ),
+    pytest.param(
+        datetime.datetime(2514, 5, 30, 1, 53, 3, tzinfo=datetime.timezone.utc),
+        b"\xd7\xff\x00\x00\x00\x03\xff\xff\xff\xff",
+        id="timestamp64 max seconds",
+    ),
+    pytest.param(
+        datetime.datetime(2514, 5, 30, 1, 53, 4, tzinfo=datetime.timezone.utc),
+        b"\xc7\x0c\xff\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00",
+        id="timestamp96 required",
+    ),
+    pytest.param(
+        datetime.datetime(9999, 12, 4, 15, 30, 7, tzinfo=datetime.timezone.utc),
+        b"\xc7\x0c\xff\x00\x00\x00\x00\x00\x00\x00:\xff\xd01\x7f",
+        id="timestamp96 datetime max year",
+    ),
 )

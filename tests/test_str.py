@@ -5,7 +5,7 @@ import pytest
 
 import ormsgpack
 
-from .params import STR_PARAMS
+from .params import STR_PARAMS, DictType
 
 
 @pytest.mark.parametrize("value", STR_PARAMS)
@@ -14,7 +14,10 @@ def test_str(value: str) -> None:
     assert packed == msgpack.packb(value)
     assert ormsgpack.unpackb(packed) == value
 
-    obj = {value: True}
+
+@pytest.mark.parametrize("value", STR_PARAMS)
+def test_str_dict_key(dict_type: DictType, value: str) -> None:
+    obj = dict_type({value: True})
     packed = ormsgpack.packb(obj)
     assert packed == msgpack.packb(obj)
     assert ormsgpack.unpackb(packed) == obj

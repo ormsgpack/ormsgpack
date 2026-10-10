@@ -14,6 +14,8 @@ use crate::serialize::enum_::*;
 use crate::serialize::ext::*;
 use crate::serialize::float::*;
 use crate::serialize::fragment::*;
+#[cfg(Py_3_15)]
+use crate::serialize::frozendict::*;
 use crate::serialize::list::*;
 use crate::serialize::memoryview::*;
 use crate::serialize::numpy::*;
@@ -141,6 +143,10 @@ impl<'a, 'py> PyObject<'a, 'py> {
             if let Some(value) = Dict::try_new(obj, self.context) {
                 return value.serialize(serializer);
             }
+            #[cfg(Py_3_15)]
+            if let Some(value) = FrozenDict::try_new(obj, self.context) {
+                return value.serialize(serializer);
+            }
         }
 
         if let Some(value) = Ext::try_new(obj, &self.context.state.ext) {
@@ -242,6 +248,11 @@ impl<'a, 'py> PyObject<'a, 'py> {
         }
 
         if let Some(value) = Fragment::try_new(obj, &self.context.state.fragment) {
+            return value.serialize(serializer);
+        }
+
+        #[cfg(Py_3_15)]
+        if let Some(value) = FrozenDict::try_new_exact(obj, self.context) {
             return value.serialize(serializer);
         }
 

@@ -4,6 +4,8 @@ import pytest
 
 import ormsgpack
 
+from .params import DictType
+
 
 def test_circular_dict() -> None:
     """
@@ -25,11 +27,12 @@ def test_circular_list() -> None:
         ormsgpack.packb(obj)
 
 
-def test_circular_nested() -> None:
+def test_circular_nested(dict_type: DictType) -> None:
     """
     packb() circular reference nested dict, list
     """
-    obj: dict[str, object] = {}
-    obj["list"] = [{"obj": obj}]
+    values: list[object] = []
+    obj = dict_type({"list": values})
+    values.append(dict_type({"obj": obj}))
     with pytest.raises(ormsgpack.MsgpackEncodeError):
         ormsgpack.packb(obj)

@@ -5,7 +5,7 @@ import pytest
 
 import ormsgpack
 
-from .params import BIN_PARAMS
+from .params import BIN_PARAMS, DictType
 
 
 @pytest.mark.parametrize("value", BIN_PARAMS)
@@ -14,7 +14,10 @@ def test_bytes(value: bytes) -> None:
     assert packed == msgpack.packb(value)
     assert ormsgpack.unpackb(packed) == value
 
-    obj = {value: True}
+
+@pytest.mark.parametrize("value", BIN_PARAMS)
+def test_bytes_dict_key(dict_type: DictType, value: bytes) -> None:
+    obj = dict_type({value: True})
     with pytest.raises(ormsgpack.MsgpackEncodeError):
         ormsgpack.packb(obj)
     packed = ormsgpack.packb(obj, option=ormsgpack.OPT_NON_STR_KEYS)
