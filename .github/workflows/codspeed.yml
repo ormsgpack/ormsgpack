@@ -28,6 +28,8 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version: ${{ env.UV_VERSION }}
+          cache-suffix: ${{ github.workflow }}
+          prune-cache: true
       - run: uv sync --frozen --config-setting build-args=--profile=benchmark
       - uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea # v5.2.1
         with:
