@@ -101,10 +101,10 @@ jobs:
         include:
           - libc: 'gnu'
             manylinux: 'auto'
-            os: 'trixie'
+            image: 'debian:trixie-slim'
           - libc: 'musl'
             manylinux: 'musllinux_1_2'
-            os: 'alpine3.23'
+            image: 'alpine:3.23'
           - platform: 'linux/amd64'
             libc: 'musl'
             target: 'x86_64-unknown-linux-musl'
@@ -114,9 +114,6 @@ jobs:
           - platform: 'linux/arm/v7'
             libc: 'gnu'
             target: 'armv7-unknown-linux-gnueabihf'
-          - platform: 'linux/arm/v7'
-            libc: 'musl'
-            target: 'armv7-unknown-linux-musleabihf'
           - uv_no_group: ''
           - platform: 'linux/amd64'
             runs-on: 'ubuntu-latest'
@@ -130,6 +127,10 @@ jobs:
             libc: 'gnu'
           - platform: 'linux/arm64'
             libc: 'gnu'
+          - platform: 'linux/arm/v7'
+            libc: 'musl'
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
@@ -141,7 +142,7 @@ jobs:
         run: echo UV_NO_GROUP=${{ matrix.uv_no_group }} >> $GITHUB_ENV
       - run: |
           scripts/test-in-container.sh \
-              python:${{ matrix.python-version }}-${{ matrix.os }} \
+              ${{ matrix.image }} \
               ${{ matrix.platform }} \
               ${{ github.workspace }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
