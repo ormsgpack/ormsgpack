@@ -16,6 +16,33 @@ use std::ptr::NonNull;
 
 const RECURSION_LIMIT: u16 = 1024;
 
+/// Owns a Python object while deserialization may still fail.
+///
+/// Containers are allocated before their contents are read. If reading an element fails, the
+/// container (and everything already stored in it) must be released, otherwise every rejected
+/// message leaks the partially built object. Call `into_inner` once the object is complete.
+struct Owned(NonNull<pyo3::ffi::PyObject>);
+
+impl Owned {
+    #[inline]
+    fn as_ptr(&self) -> *mut pyo3::ffi::PyObject {
+        self.0.as_ptr()
+    }
+
+    #[inline]
+    fn into_inner(self) -> NonNull<pyo3::ffi::PyObject> {
+        let ptr = self.0;
+        std::mem::forget(self);
+        ptr
+    }
+}
+
+impl Drop for Owned {
+    fn drop(&mut self) {
+        unsafe { pyo3::ffi::Py_DECREF(self.0.as_ptr()) };
+    }
+}
+
 fn deserialize_slice(
     contents: &[u8],
     state: *mut State,
@@ -257,22 +284,26 @@ where
     }
 
     fn deserialize_array(&mut self, len: u32) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let ptr = unsafe { pyo3::ffi::PyList_New(len as pyo3::ffi::Py_ssize_t) };
+        let list = Owned(unsafe {
+            NonNull::new_unchecked(pyo3::ffi::PyList_New(len as pyo3::ffi::Py_ssize_t))
+        });
         for i in 0..len {
             let elem = self.deserialize()?;
-            unsafe { pyo3::ffi::PyList_SET_ITEM(ptr, i as pyo3::ffi::Py_ssize_t, elem.as_ptr()) };
+            unsafe {
+                pyo3::ffi::PyList_SET_ITEM(list.as_ptr(), i as pyo3::ffi::Py_ssize_t, elem.as_ptr())
+            };
         }
-        unsafe { Ok(NonNull::new_unchecked(ptr)) }
+        Ok(list.into_inner())
     }
 
     fn deserialize_map_with_str_keys(
         &mut self,
         len: u32,
     ) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let dict_ptr = unsafe { pyo3::ffi::PyDict_New() };
+        let dict = Owned(unsafe { NonNull::new_unchecked(pyo3::ffi::PyDict_New()) });
         for _ in 0..len {
             let marker = self.read_marker()?;
-            let key = match marker {
+            let key = Owned(match marker {
                 Marker::FixStr(len) => self.deserialize_map_str_key(len.into()),
                 Marker::Str8 => {
                     let len = self.data.read_u8()?;
@@ -287,36 +318,32 @@ where
                     self.deserialize_map_str_key(len)
                 }
                 marker => Err(Error::InvalidType(marker)),
-            }?;
-            let value = self.deserialize()?;
+            }?);
+            let value = Owned(self.deserialize()?);
+            // PyDict_SetItem takes its own references; `key` and `value` release theirs on drop.
             unsafe {
-                let _ = pyo3::ffi::PyDict_SetItem(dict_ptr, key.as_ptr(), value.as_ptr());
-                // counter Py_INCREF in insertdict
-                pyo3::ffi::Py_DECREF(key.as_ptr());
-                pyo3::ffi::Py_DECREF(value.as_ptr());
+                let _ = pyo3::ffi::PyDict_SetItem(dict.as_ptr(), key.as_ptr(), value.as_ptr());
             }
         }
-        unsafe { Ok(NonNull::new_unchecked(dict_ptr)) }
+        Ok(dict.into_inner())
     }
 
     fn deserialize_map_with_non_str_keys(
         &mut self,
         len: u32,
     ) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let dict_ptr = unsafe { pyo3::ffi::PyDict_New() };
+        let dict = Owned(unsafe { NonNull::new_unchecked(pyo3::ffi::PyDict_New()) });
         for _ in 0..len {
-            let key = self.deserialize_map_key()?;
-            let value = self.deserialize()?;
-            unsafe {
-                let ret = pyo3::ffi::PyDict_SetItem(dict_ptr, key.as_ptr(), value.as_ptr());
-                pyo3::ffi::Py_DECREF(key.as_ptr());
-                pyo3::ffi::Py_DECREF(value.as_ptr());
-                if unlikely(ret == -1) {
-                    return Err(Error::Internal);
-                }
+            let key = Owned(self.deserialize_map_key()?);
+            let value = Owned(self.deserialize()?);
+            // PyDict_SetItem takes its own references; `key` and `value` release theirs on drop.
+            let ret =
+                unsafe { pyo3::ffi::PyDict_SetItem(dict.as_ptr(), key.as_ptr(), value.as_ptr()) };
+            if unlikely(ret == -1) {
+                return Err(Error::Internal);
             }
         }
-        unsafe { Ok(NonNull::new_unchecked(dict_ptr)) }
+        Ok(dict.into_inner())
     }
 
     fn deserialize_map(&mut self, len: u32) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
@@ -462,14 +489,16 @@ where
         &mut self,
         len: u32,
     ) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
-        let ptr = unsafe { pyo3::ffi::PyTuple_New(len as pyo3::ffi::Py_ssize_t) };
+        let tuple = Owned(unsafe {
+            NonNull::new_unchecked(pyo3::ffi::PyTuple_New(len as pyo3::ffi::Py_ssize_t))
+        });
         for i in 0..len {
             let elem = self.deserialize_map_key()?;
             unsafe {
-                pytuple_set_item(ptr, i as pyo3::ffi::Py_ssize_t, elem.as_ptr());
+                pytuple_set_item(tuple.as_ptr(), i as pyo3::ffi::Py_ssize_t, elem.as_ptr());
             }
         }
-        unsafe { Ok(NonNull::new_unchecked(ptr)) }
+        Ok(tuple.into_inner())
     }
 
     fn deserialize_map_ext_key(&mut self, len: u32) -> Result<NonNull<pyo3::ffi::PyObject>, Error> {
