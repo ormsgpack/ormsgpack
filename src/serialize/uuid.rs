@@ -11,7 +11,7 @@ pub struct UUID {
 
 const HEX: [u8; 16] = *b"0123456789abcdef";
 
-fn write_group<W>(writer: &mut W, group: &[c_uchar]) -> Result<(), std::io::Error>
+fn write_group<W>(writer: &mut W, group: &[u8]) -> Result<(), std::io::Error>
 where
     W: std::io::Write,
 {
@@ -21,6 +21,22 @@ where
             HEX[(group[i] & 0x0f) as usize],
         ])?;
     }
+    Ok(())
+}
+
+fn write_uuid<W>(writer: &mut W, value: &[u8; 16]) -> Result<(), std::io::Error>
+where
+    W: std::io::Write,
+{
+    write_group(writer, &value[..4])?;
+    writer.write_all(b"-")?;
+    write_group(writer, &value[4..6])?;
+    writer.write_all(b"-")?;
+    write_group(writer, &value[6..8])?;
+    writer.write_all(b"-")?;
+    write_group(writer, &value[8..10])?;
+    writer.write_all(b"-")?;
+    write_group(writer, &value[10..])?;
     Ok(())
 }
 
@@ -62,16 +78,7 @@ impl UUID {
             pyo3::ffi::Py_DECREF(value);
         };
 
-        write_group(writer, &buffer[..4])?;
-        writer.write_all(b"-")?;
-        write_group(writer, &buffer[4..6])?;
-        writer.write_all(b"-")?;
-        write_group(writer, &buffer[6..8])?;
-        writer.write_all(b"-")?;
-        write_group(writer, &buffer[8..10])?;
-        writer.write_all(b"-")?;
-        write_group(writer, &buffer[10..])?;
-        Ok(())
+        write_uuid(writer, &buffer)
     }
 }
 
