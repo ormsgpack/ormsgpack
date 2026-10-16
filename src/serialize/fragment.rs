@@ -3,26 +3,26 @@
 use crate::ffi::BorrowedWithType;
 use crate::fragment::PyFragment;
 use pyo3::prelude::*;
-use pyo3::types::PyBytes;
+use pyo3::types::PyType;
 use serde::ser::{Serialize, Serializer};
 use serde_bytes::Bytes;
 
 pub struct State {
-    pub type_object: Py<PyAny>,
+    pub type_object: Py<PyType>,
 }
 
 impl State {
     #[cold]
     pub fn new(py: Python<'_>) -> PyResult<Self> {
         Ok(Self {
-            type_object: crate::fragment::create_fragment_type(py)?.unbind(),
+            type_object: py.get_type::<PyFragment>().unbind(),
         })
     }
 }
 
 #[repr(transparent)]
 pub struct Fragment<'a, 'py> {
-    obj: Borrowed<'a, 'py, PyAny>,
+    obj: Borrowed<'a, 'py, PyFragment>,
 }
 
 impl<'a, 'py> Fragment<'a, 'py> {
@@ -30,7 +30,7 @@ impl<'a, 'py> Fragment<'a, 'py> {
     pub fn try_new(obj: BorrowedWithType<'a, 'py>, state: &State) -> Option<Self> {
         if obj.get_type_ptr() == state.type_object.as_ptr().cast() {
             Some(Self {
-                obj: obj.as_borrowed(),
+                obj: unsafe { obj.as_borrowed().cast_unchecked::<PyFragment>() },
             })
         } else {
             None
@@ -43,10 +43,9 @@ impl Serialize for Fragment<'_, '_> {
     where
         S: Serializer,
     {
-        let fragment = self.obj.as_ptr().cast::<PyFragment>();
-        let data = unsafe {
-            Borrowed::from_ptr(self.obj.py(), (*fragment).data).cast_unchecked::<PyBytes>()
-        };
+        let py = self.obj.py();
+        let fragment = self.obj.get();
+        let data = fragment.data.bind(py);
 
         serializer.serialize_newtype_struct("", Bytes::new(data.as_bytes()))
     }
