@@ -30,7 +30,7 @@ uv add ormsgpack
 ```
 
 Installing from a source distribution requires
-[Rust](https://www.rust-lang.org/) 1.81 or newer and
+[Rust](https://www.rust-lang.org/) 1.88 or newer and
 [maturin](https://github.com/PyO3/maturin).
 
 ## Quickstart

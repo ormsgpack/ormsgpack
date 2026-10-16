@@ -106,6 +106,7 @@ API Reference
    :py:obj:`float`,
    :py:obj:`str`,
    :py:obj:`bytes`,
+   :py:obj:`tuple`,
    :py:obj:`datetime.date`,
    :py:obj:`datetime.time`,
    :py:obj:`datetime.datetime`,
@@ -133,7 +134,7 @@ API Reference
 .. py:data:: OPT_PASSTHROUGH_BIG_INT
 
    Enable passthrough of :py:obj:`int` instances smaller than
-   -9223372036854775807 or larger than 18446744073709551615 to ``default``.
+   -9223372036854775808 or larger than 18446744073709551615 to ``default``.
 
    .. literalinclude:: examples/example_opt_passthrough_big_int.txt
 

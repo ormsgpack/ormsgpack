@@ -18,7 +18,7 @@ int
 
 Instances of :py:obj:`int` and of subclasses of :py:obj:`int` are serialized as
 integers. The minimum and maximum representable values are
--9223372036854775807 and 18446744073709551615, respectively.
+-9223372036854775808 and 18446744073709551615, respectively.
 
 float
 -----
@@ -144,11 +144,10 @@ enabled by using the :py:data:`ormsgpack.OPT_SERIALIZE_NUMPY` option.
 pydantic
 --------
 
-``pydantic.BaseModel`` instances are serialized as maps, with
-`duck-typing <https://docs.pydantic.dev/2.12/concepts/serialization/#serializing-with-duck-typing>`__.
-This is equivalent to serializing
-``model.model_dump(serialize_as_any=True)`` with Pydantic V2 or
-``model.dict()``\ with Pydantic V1.
+``pydantic.BaseModel`` instances are serialized as maps based on the runtime
+types of their field values, as with ``model.model_dump(serialize_as_any=True)``
+in Pydantic V2 or ``model.dict()`` in Pydantic V1. Field aliases, exclusions and
+serializers are not applied.
 
 The serialization of pydantic models is disabled by default and can be
 enabled by using the :py:data:`ormsgpack.OPT_SERIALIZE_PYDANTIC` option.
