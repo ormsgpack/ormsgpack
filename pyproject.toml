@@ -111,3 +111,4 @@ cache-keys = [
     { file = "pyproject.toml" },
 ]
 default-groups = ["dev", "dev-extra"]
+exclude-newer = "3 days"
