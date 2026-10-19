@@ -1,9 +1,0 @@
-exclude = [
-    ".nox/**",
-    ".venv/**",
-]
-
-[formatting]
-array_auto_collapse = false
-array_auto_expand = false
-indent_string = "    "

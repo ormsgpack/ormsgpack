@@ -35,6 +35,9 @@ keywords = ["fast", "msgpack", "dataclass", "dataclasses", "datetime"]
 [project.urls]
 Homepage = "https://github.com/ormsgpack/ormsgpack"
 
+[project.entry-points.pyinstaller40]
+hook-dirs = "ormsgpack._pyinstaller:get_hook_dirs"
+
 [dependency-groups]
 dev = [
     "msgpack",
@@ -45,6 +48,7 @@ dev = [
     "python-dateutil",
     "pytz",
     "ruff",
+    "tombi",
     "types-python-dateutil",
     "types-pytz",
     "tzdata",
@@ -107,6 +111,3 @@ cache-keys = [
     { file = "pyproject.toml" },
 ]
 default-groups = ["dev", "dev-extra"]
-
-[project.entry-points.pyinstaller40]
-hook-dirs = "ormsgpack._pyinstaller:get_hook_dirs"

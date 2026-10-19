@@ -19,6 +19,8 @@ def lint(session: nox.Session) -> None:
     )
     session.run("ruff", "format", "--check", ".")
     session.run("ruff", "check", ".")
+    session.run("tombi", "format", "--check")
+    session.run("tombi", "lint")
     session.run("mypy", "python", "tests")
     session.run("cargo", "fmt", "--check", external=True)
     session.run("cargo", "clippy", "--", "-D", "warnings", external=True)
