@@ -41,14 +41,11 @@ hook-dirs = "ormsgpack._pyinstaller:get_hook_dirs"
 [dependency-groups]
 dev = [
     "msgpack",
-    "mypy; platform_python_implementation == 'CPython'",
     "pendulum",
     "pydantic",
     "pytest",
     "python-dateutil",
     "pytz",
-    "ruff",
-    "tombi",
     "types-python-dateutil",
     "types-pytz",
     "tzdata",
@@ -57,6 +54,12 @@ dev = [
 dev-extra = [
     "numpy; platform_python_implementation != 'GraalVM'",
     "pytest-codspeed; platform_python_implementation != 'GraalVM'",
+]
+
+lint = [
+    "mypy",
+    "ruff",
+    "tombi",
 ]
 
 docs = [

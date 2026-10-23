@@ -588,7 +588,7 @@ version = "2.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ast-serialize" },
-    { name = "librt" },
+    { name = "librt", marker = "platform_python_implementation != 'PyPy'" },
     { name = "mypy-extensions" },
     { name = "pathspec" },
     { name = "typing-extensions" },
@@ -819,14 +819,11 @@ default-groups = ["dev", "dev-extra"]
 [package.dev-dependencies]
 dev = [
     { name = "msgpack" },
-    { name = "mypy", marker = "platform_python_implementation == 'CPython'" },
     { name = "pendulum" },
     { name = "pydantic" },
     { name = "pytest" },
     { name = "python-dateutil" },
     { name = "pytz" },
-    { name = "ruff" },
-    { name = "tombi" },
     { name = "types-python-dateutil" },
     { name = "types-pytz" },
     { name = "tzdata" },
@@ -841,20 +838,22 @@ docs = [
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
+lint = [
+    { name = "mypy" },
+    { name = "ruff" },
+    { name = "tombi" },
+]
 
 [package.metadata]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "msgpack" },
-    { name = "mypy", marker = "platform_python_implementation == 'CPython'" },
     { name = "pendulum" },
     { name = "pydantic" },
     { name = "pytest" },
     { name = "python-dateutil" },
     { name = "pytz" },
-    { name = "ruff" },
-    { name = "tombi" },
     { name = "types-python-dateutil" },
     { name = "types-pytz" },
     { name = "tzdata" },
@@ -866,6 +865,11 @@ dev-extra = [
 docs = [
     { name = "furo" },
     { name = "sphinx" },
+]
+lint = [
+    { name = "mypy" },
+    { name = "ruff" },
+    { name = "tombi" },
 ]
 
 [[package]]

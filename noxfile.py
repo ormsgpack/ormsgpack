@@ -14,6 +14,7 @@ def lint(session: nox.Session) -> None:
         "sync",
         "--frozen",
         "--no-install-project",
+        "--group=lint",
         f"--python={session.virtualenv.location}",
         env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
     )
