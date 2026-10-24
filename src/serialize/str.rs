@@ -2,10 +2,9 @@
 
 use crate::ffi::*;
 use crate::opt::*;
-use crate::util::unlikely;
 
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyString};
+use pyo3::types::PyString;
 use serde::ser::{Serialize, Serializer};
 
 #[repr(transparent)]
@@ -25,19 +24,10 @@ impl Serialize for StrWithSurrogates<'_, '_> {
     where
         S: Serializer,
     {
-        unsafe {
-            let ptr = pyo3::ffi::PyUnicode_AsEncodedString(
-                self.obj.as_ptr(),
-                c"UTF-8".as_ptr(),
-                c"replace".as_ptr(),
-            );
-            if unlikely(ptr.is_null()) {
-                return Err(serde::ser::Error::custom("invalid string"));
-            }
-            let obj = Bound::from_owned_ptr(self.obj.py(), ptr).cast_into_unchecked::<PyBytes>();
-            let uni = std::str::from_utf8_unchecked(obj.as_bytes());
-            serializer.serialize_str(uni)
-        }
+        let encoded =
+            unicode_encode(self.obj).map_err(|_| serde::ser::Error::custom("invalid string"))?;
+        let value = unsafe { std::str::from_utf8_unchecked(encoded.as_bytes()) };
+        serializer.serialize_str(value)
     }
 }
 
