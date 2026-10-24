@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use crate::ffi::BorrowedWithType;
+use crate::io::WriteSlices;
+use crate::serialize::Error;
+use crate::serialize::{Serialize, Serializer};
 use pyo3::prelude::*;
 use pyo3::sync::critical_section::with_critical_section;
 use pyo3::types::PyByteArray;
-use serde::ser::{Serialize, Serializer};
 
 #[repr(transparent)]
 pub struct ByteArray<'a, 'py> {
@@ -21,9 +23,12 @@ impl<'a, 'py> ByteArray<'a, 'py> {
 }
 
 impl Serialize for ByteArray<'_, '_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         with_critical_section(&self.obj, || {
             let contents = unsafe { self.obj.as_bytes() };
