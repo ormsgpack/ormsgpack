@@ -5,7 +5,6 @@ use crate::util::unlikely;
 use pyo3::ffi::*;
 use pyo3::prelude::*;
 use pyo3::types::PyInt;
-use serde::ser::{Serialize, Serializer};
 use std::ffi::{c_long, c_ulong};
 
 #[inline(always)]
@@ -122,18 +121,5 @@ impl Int {
             return Ok(None);
         };
         Self::new(obj).map(Some)
-    }
-}
-
-impl Serialize for Int {
-    #[inline]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self {
-            Int::Signed(value) => serializer.serialize_i64(*value),
-            Int::Unsigned(value) => serializer.serialize_u64(*value),
-        }
     }
 }

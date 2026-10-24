@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+use crate::io::WriteSlices;
 use crate::msgpack;
 use crate::opt::*;
+use crate::serialize::Error;
+use crate::serialize::{Serialize, Serializer};
 use chrono::{Datelike, Timelike};
-use serde::ser::{Serialize, Serializer};
 
 fn write_integer<W>(writer: &mut W, value: i32, width: usize) -> Result<(), std::io::Error>
 where
@@ -168,9 +170,12 @@ impl DateTimeLike for NaiveDateTime {
 }
 
 impl Serialize for NaiveDateTime {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         let mut cursor = std::io::Cursor::new([0u8; 32]);
         DateTimeLike::write_rfc3339(self, &mut cursor, self.opts).unwrap();

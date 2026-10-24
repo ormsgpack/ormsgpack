@@ -2,10 +2,11 @@
 
 use crate::ffi::BorrowedWithType;
 use crate::fragment::PyFragment;
+use crate::io::WriteSlices;
+use crate::serialize::Error;
+use crate::serialize::{Serialize, Serializer};
 use pyo3::prelude::*;
 use pyo3::types::PyType;
-use serde::ser::{Serialize, Serializer};
-use serde_bytes::Bytes;
 
 pub struct State {
     pub type_object: Py<PyType>,
@@ -39,14 +40,17 @@ impl<'a, 'py> Fragment<'a, 'py> {
 }
 
 impl Serialize for Fragment<'_, '_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         let py = self.obj.py();
         let fragment = self.obj.get();
         let data = fragment.data.bind(py);
 
-        serializer.serialize_newtype_struct("", Bytes::new(data.as_bytes()))
+        serializer.serialize_fragment(data.as_bytes())
     }
 }
