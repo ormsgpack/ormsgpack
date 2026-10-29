@@ -22,16 +22,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - run: rustup install --profile minimal
-      - uses: actions/setup-python@v7.0.0
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: 3.13
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           version: ${{ env.UV_VERSION }}
           cache-suffix: ${{ github.workflow }}
           prune-cache: true
       - run: uv sync --frozen --config-setting build-args=--profile=benchmark
-      - uses: CodSpeedHQ/action@v5.5.0
+      - uses: CodSpeedHQ/action@v5.6.0
         with:
           mode: simulation,memory
           exclude-allocations: true

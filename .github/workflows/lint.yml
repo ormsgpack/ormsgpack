@@ -28,10 +28,10 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - run: rustup install --profile minimal
       - run: rustup component add clippy rustfmt
-      - uses: actions/setup-python@v7.0.0
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: 3.13
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           version: ${{ env.UV_VERSION }}
           cache-suffix: ${{ github.workflow }}
