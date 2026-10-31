@@ -36,4 +36,4 @@ jobs:
           version: ${{ env.UV_VERSION }}
           cache-suffix: ${{ github.workflow }}
           prune-cache: true
-      - run: uvx nox -s lint docs
+      - run: uvx nox -s lint docs check_leaks

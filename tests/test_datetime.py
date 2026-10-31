@@ -3,6 +3,7 @@
 import datetime
 import zoneinfo
 from collections.abc import Callable
+from functools import cache
 
 import msgpack
 import pytest
@@ -20,7 +21,7 @@ except ImportError:
     pendulum_timezone = None
     pendulum_UTC = None
 else:
-    pendulum_timezone = pendulum.timezone
+    pendulum_timezone = cache(pendulum.timezone)
     pendulum_UTC = pendulum.UTC
 
 
