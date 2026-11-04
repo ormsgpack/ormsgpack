@@ -30,6 +30,10 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 
 def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers",
+        "disable_leak_check: run without object-leak instrumentation",
+    )
     if config.getoption("--check-leaks"):
         if not config.pluginmanager.hasplugin("memray"):
             raise pytest.UsageError("--check-leaks requires pytest-memray")
@@ -42,7 +46,11 @@ def pytest_configure(config: pytest.Config) -> None:
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_runtest_call(item: pytest.Item) -> Iterator[None]:
-    if item.config.getoption("--check-leaks") and isinstance(item, pytest.Function):
+    if (
+        item.config.getoption("--check-leaks")
+        and isinstance(item, pytest.Function)
+        and item.get_closest_marker("disable_leak_check") is None
+    ):
         item.runtest()
         gc.collect()
         item.add_marker(
