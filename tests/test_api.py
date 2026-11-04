@@ -132,6 +132,47 @@ def test_truncated_data(obj: object, option: int) -> None:
         ormsgpack.unpackb(packed, option=option)
 
 
+@pytest.mark.parametrize(
+    "value, option",
+    (
+        pytest.param(
+            b"\xdc\xff\xff",
+            0,
+            id="array",
+        ),
+        pytest.param(
+            b"\x81\xa0\xdc\xff\xff",
+            0,
+            id="array-in-map",
+        ),
+        pytest.param(
+            b"\x81\xdc\xff\xff",
+            ormsgpack.OPT_NON_STR_KEYS,
+            id="tuple-map-key",
+        ),
+    ),
+)
+@pytest.mark.disable_leak_check
+@pytest.mark.skipif(
+    platform.python_implementation() != "CPython",
+    reason="tracemalloc is only supported on CPython",
+)
+def test_truncated_array(value: bytes, option: int) -> None:
+    import tracemalloc
+
+    # The array declares 65535 elements, but the input ends after the header.
+    # Preallocating the declared length would take about 512 KiB, so a low
+    # allocation peak shows the length was not trusted.
+    tracemalloc.start()
+    try:
+        with pytest.raises(ormsgpack.MsgpackDecodeError):
+            ormsgpack.unpackb(value, option=option)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 16_000
+
+
 def test_unpackb_recursion() -> None:
     """
     unpackb() recursion limit

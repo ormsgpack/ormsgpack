@@ -27,6 +27,7 @@ impl<'py> IntoPyObject<'py> for PyItem<'py> {
     }
 }
 
+const PREALLOC_LIMIT: u32 = 64;
 const RECURSION_LIMIT: u16 = 1024;
 
 fn deserialize_slice<'a, 'py>(
@@ -227,9 +228,15 @@ where
     fn deserialize_array(&mut self, len: u32) -> Result<Bound<'py, PyList>, Error> {
         let py = self.py;
         let state = self.state;
-        let elements =
-            (0..len).map(|_| PyItem(self.deserialize().map_err(|e| e.into_pyerr(py, state))));
-        PyList::new(py, elements).map_err(Error::PyErr)
+        let prealloc_len = len.min(PREALLOC_LIMIT);
+        let elements = (0..prealloc_len)
+            .map(|_| PyItem(self.deserialize().map_err(|e| e.into_pyerr(py, state))));
+        let list = PyList::new(py, elements).map_err(Error::PyErr)?;
+        for _ in prealloc_len..len {
+            let item = self.deserialize()?;
+            list.append(item).map_err(Error::PyErr)?;
+        }
+        Ok(list)
     }
 
     fn deserialize_map_with_str_keys(&mut self, len: u32) -> Result<Bound<'py, PyDict>, Error> {
@@ -408,6 +415,13 @@ where
     }
 
     fn deserialize_map_array_key(&mut self, len: u32) -> Result<Bound<'py, PyTuple>, Error> {
+        if unlikely(len > PREALLOC_LIMIT) {
+            let mut elements = Vec::with_capacity(PREALLOC_LIMIT as usize);
+            for _ in 0..len {
+                elements.push(self.deserialize_map_key()?);
+            }
+            return PyTuple::new(self.py, elements).map_err(Error::PyErr);
+        }
         let py = self.py;
         let state = self.state;
         let elements = (0..len).map(|_| {
