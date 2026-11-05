@@ -25,13 +25,13 @@ jobs:
       - uses: actions/setup-python@v7.1.0
         with:
           python-version: 3.13
-      - uses: astral-sh/setup-uv@v10.3.2
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           version: ${{ env.UV_VERSION }}
           cache-suffix: ${{ github.workflow }}
           prune-cache: true
       - run: uv sync --frozen --config-setting build-args=--profile=benchmark
-      - uses: CodSpeedHQ/action@v5.6.0
+      - uses: CodSpeedHQ/action@v5.6.1
         with:
           mode: simulation,memory
           exclude-allocations: true
