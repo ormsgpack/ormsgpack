@@ -1,6 +1,15 @@
 Changelog
 =========
 
+1.13.1 - 2026-11-08
+-------------------
+
+Security
+~~~~~~~~
+
+- Prevent excessive memory and CPU consumption when decoding truncated
+  MessagePack arrays (reported by :user:`zainnobody`)
+
 1.13.0 - 2026-10-15
 -------------------
 
