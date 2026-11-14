@@ -17,8 +17,6 @@ pub struct State {
     pub numpy: numpy::State,
     pub pydantic: pydantic::State,
     pub uuid: uuid::State,
-    pub dict_str: Py<PyString>,
-    pub slots_str: Py<PyString>,
     pub MsgpackEncodeError: Py<PyType>,
 }
 
@@ -34,8 +32,6 @@ impl State {
             numpy: numpy::State::new(py),
             pydantic: pydantic::State::new(py),
             uuid: uuid::State::new(py)?,
-            dict_str: PyString::intern(py, "__dict__").unbind(),
-            slots_str: PyString::intern(py, "__slots__").unbind(),
             MsgpackEncodeError: PyTypeError::type_object(py).unbind(),
         })
     }

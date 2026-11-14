@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use crate::ffi::{get_type, BorrowedWithType};
-use crate::serialize::serializer::{DictKey, PyObject};
-use crate::serialize::{pyerr_to_serde, Context, DictKeyContext};
+use crate::io::WriteSlices;
+use crate::serialize::{Error, Serialize, Serializer};
 
 use pyo3::prelude::*;
 use pyo3::types::PyString;
-use serde::ser::{Serialize, Serializer};
 
 pub struct State {
     type_object: Py<PyAny>,
@@ -23,18 +22,18 @@ impl State {
     }
 }
 
-pub struct Enum<'a, 'py, C> {
+pub struct Enum<'a, 'py> {
     obj: Borrowed<'a, 'py, PyAny>,
-    context: C,
+    state: &'a State,
 }
 
-impl<'a, 'py, C> Enum<'a, 'py, C> {
+impl<'a, 'py> Enum<'a, 'py> {
     #[inline]
-    pub fn try_new(obj: BorrowedWithType<'a, 'py>, state: &State, context: C) -> Option<Self> {
+    pub fn try_new(obj: BorrowedWithType<'a, 'py>, state: &'a State) -> Option<Self> {
         if get_type(obj.get_type()).as_type_ptr() == state.type_object.as_ptr().cast() {
             Some(Self {
                 obj: obj.as_borrowed(),
-                context: context,
+                state: state,
             })
         } else {
             None
@@ -42,40 +41,14 @@ impl<'a, 'py, C> Enum<'a, 'py, C> {
     }
 }
 
-impl Serialize for Enum<'_, '_, Context<'_, '_>> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+impl Serialize for Enum<'_, '_> {
+    fn serialize_as<const KEY: bool, W: WriteSlices>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error> {
         let value = self
             .obj
-            .getattr(
-                self.context
-                    .state
-                    .enum_
-                    .value_str
-                    .bind_borrowed(self.obj.py()),
-            )
-            .map_err(|e| pyerr_to_serde(self.obj.py(), e))?;
-        PyObject::new(value.as_borrowed(), self.context).serialize(serializer)
-    }
-}
-
-impl Serialize for Enum<'_, '_, DictKeyContext<'_>> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let value = self
-            .obj
-            .getattr(
-                self.context
-                    .state
-                    .enum_
-                    .value_str
-                    .bind_borrowed(self.obj.py()),
-            )
-            .map_err(|e| pyerr_to_serde(self.obj.py(), e))?;
-        DictKey::new(value.as_borrowed(), self.context).serialize(serializer)
+            .getattr(self.state.value_str.bind_borrowed(self.obj.py()))?;
+        value.as_borrowed().serialize_as::<KEY, W>(serializer)
     }
 }

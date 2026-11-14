@@ -2,10 +2,11 @@
 
 use crate::ext::PyExt;
 use crate::ffi::BorrowedWithType;
+use crate::io::WriteSlices;
+use crate::serialize::Error;
+use crate::serialize::{Serialize, Serializer};
 use pyo3::prelude::*;
 use pyo3::types::PyType;
-use serde::ser::{Serialize, Serializer};
-use serde_bytes::Bytes;
 
 pub struct State {
     pub type_object: Py<PyType>,
@@ -39,18 +40,21 @@ impl<'a, 'py> Ext<'a, 'py> {
 }
 
 impl Serialize for Ext<'_, '_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         let py = self.obj.py();
         let ext = self.obj.get();
         let tag = match ext.tag.bind(py).extract::<u32>() {
             Ok(tag @ 0..=127) => tag,
-            _ => return Err(serde::ser::Error::custom("Extension type out of range")),
+            _ => return Err(Error::custom("Extension type out of range")),
         };
         let data = ext.data.bind(py);
 
-        serializer.serialize_newtype_variant("", tag, "", Bytes::new(data.as_bytes()))
+        serializer.serialize_ext(tag as i8, data.as_bytes())
     }
 }

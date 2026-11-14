@@ -4,9 +4,11 @@ use crate::ffi::*;
 use crate::opt::*;
 use crate::util::unlikely;
 
+use crate::io::WriteSlices;
+use crate::serialize::Error;
+use crate::serialize::{Serialize, Serializer};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyString};
-use serde::ser::{Serialize, Serializer};
 
 #[repr(transparent)]
 struct StrWithSurrogates<'a, 'py> {
@@ -21,9 +23,12 @@ impl<'a, 'py> StrWithSurrogates<'a, 'py> {
 
 impl Serialize for StrWithSurrogates<'_, '_> {
     #[inline(never)]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         unsafe {
             let ptr = pyo3::ffi::PyUnicode_AsEncodedString(
@@ -32,7 +37,7 @@ impl Serialize for StrWithSurrogates<'_, '_> {
                 c"replace".as_ptr(),
             );
             if unlikely(ptr.is_null()) {
-                return Err(serde::ser::Error::custom("invalid string"));
+                return Err(Error::custom("invalid string"));
             }
             let obj = Bound::from_owned_ptr(self.obj.py(), ptr).cast_into_unchecked::<PyBytes>();
             let uni = std::str::from_utf8_unchecked(obj.as_bytes());
@@ -57,17 +62,20 @@ impl<'a, 'py> Str<'a, 'py> {
 }
 
 impl Serialize for Str<'_, '_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         match unicode_to_str(self.obj) {
             Ok(val) => serializer.serialize_str(val),
             Err(err) => {
                 if self.opts & REPLACE_SURROGATES != 0 {
-                    StrWithSurrogates::new(self.obj).serialize(serializer)
+                    StrWithSurrogates::new(self.obj).serialize_as::<KEY, _>(serializer)
                 } else {
-                    Err(serde::ser::Error::custom(err))
+                    Err(Error::custom(err))
                 }
             }
         }
@@ -91,17 +99,20 @@ impl<'a, 'py> StrSubclass<'a, 'py> {
 
 impl Serialize for StrSubclass<'_, '_> {
     #[inline(never)]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         match unicode_to_str_via_ffi(self.obj) {
             Ok(val) => serializer.serialize_str(val),
             Err(err) => {
                 if self.opts & REPLACE_SURROGATES != 0 {
-                    StrWithSurrogates::new(self.obj).serialize(serializer)
+                    StrWithSurrogates::new(self.obj).serialize_as::<KEY, _>(serializer)
                 } else {
-                    Err(serde::ser::Error::custom(err))
+                    Err(Error::custom(err))
                 }
             }
         }

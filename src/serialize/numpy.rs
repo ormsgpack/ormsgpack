@@ -1,11 +1,13 @@
 use crate::ffi::*;
-use crate::opt::*;
+use crate::io::WriteSlices;
+use crate::opt::Opt;
 use crate::serialize::datetimelike::NaiveDateTime;
+use crate::serialize::Error;
+use crate::serialize::{Serialize, Serializer};
 use chrono::{DateTime, NaiveDate, NaiveTime, TimeDelta};
 use pyo3::ffi::{PyObject, Py_intptr_t};
 use pyo3::prelude::*;
 use pyo3::types::{PyCapsule, PyList, PyString, PyTuple};
-use serde::ser::{Serialize, SerializeSeq, Serializer};
 use std::os::raw::{c_char, c_int, c_void};
 use std::sync::OnceLock;
 
@@ -177,109 +179,113 @@ struct NumpyArrayData {
 
 impl Serialize for NumpyArrayData {
     #[inline(never)]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
-        let mut seq = serializer.serialize_seq(Some(self.len))?;
-        match self.kind {
-            ItemType::BOOL => {
-                let slice: &[u8] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<u8>(), self.len) };
-                for &each in slice.iter() {
-                    let value = each == 1;
-                    seq.serialize_element(&value).unwrap();
+        serializer.serialize_seq(self.len, |seq| {
+            match self.kind {
+                ItemType::BOOL => {
+                    let slice: &[u8] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<u8>(), self.len) };
+                    for &each in slice.iter() {
+                        let value = each == 1;
+                        seq.serialize_element(&value).unwrap();
+                    }
+                }
+                ItemType::DATETIME64(unit) => {
+                    let slice: &[i64] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<i64>(), self.len) };
+                    let convert = unit.converter().map_err(Error::custom)?;
+                    for &each in slice.iter() {
+                        let value = convert(each, self.opts).map_err(Error::custom)?;
+                        seq.serialize_element(&value).unwrap();
+                    }
+                }
+                ItemType::F16 => {
+                    let slice: &[u16] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<u16>(), self.len) };
+                    for &each in slice.iter() {
+                        let value = half::f16::from_bits(each).to_f32();
+                        seq.serialize_element(&value).unwrap();
+                    }
+                }
+                ItemType::F32 => {
+                    let slice: &[f32] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<f32>(), self.len) };
+                    for &each in slice.iter() {
+                        seq.serialize_element(&each).unwrap();
+                    }
+                }
+                ItemType::F64 => {
+                    let slice: &[f64] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<f64>(), self.len) };
+                    for &each in slice.iter() {
+                        seq.serialize_element(&each).unwrap();
+                    }
+                }
+                ItemType::I8 => {
+                    let slice: &[i8] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<i8>(), self.len) };
+                    for &each in slice.iter() {
+                        seq.serialize_element(&each).unwrap();
+                    }
+                }
+                ItemType::I16 => {
+                    let slice: &[i16] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<i16>(), self.len) };
+                    for &each in slice.iter() {
+                        seq.serialize_element(&each).unwrap();
+                    }
+                }
+                ItemType::I32 => {
+                    let slice: &[i32] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<i32>(), self.len) };
+                    for &each in slice.iter() {
+                        seq.serialize_element(&each).unwrap();
+                    }
+                }
+                ItemType::I64 => {
+                    let slice: &[i64] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<i64>(), self.len) };
+                    for &each in slice.iter() {
+                        seq.serialize_element(&each).unwrap();
+                    }
+                }
+                ItemType::U8 => {
+                    let slice: &[u8] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<u8>(), self.len) };
+                    for &each in slice.iter() {
+                        seq.serialize_element(&each).unwrap();
+                    }
+                }
+                ItemType::U16 => {
+                    let slice: &[u16] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<u16>(), self.len) };
+                    for &each in slice.iter() {
+                        seq.serialize_element(&each).unwrap();
+                    }
+                }
+                ItemType::U32 => {
+                    let slice: &[u32] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<u32>(), self.len) };
+                    for &each in slice.iter() {
+                        seq.serialize_element(&each).unwrap();
+                    }
+                }
+                ItemType::U64 => {
+                    let slice: &[u64] =
+                        unsafe { std::slice::from_raw_parts(self.data.cast::<u64>(), self.len) };
+                    for &each in slice.iter() {
+                        seq.serialize_element(&each).unwrap();
+                    }
                 }
             }
-            ItemType::DATETIME64(unit) => {
-                let slice: &[i64] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<i64>(), self.len) };
-                let convert = unit.converter().map_err(serde::ser::Error::custom)?;
-                for &each in slice.iter() {
-                    let value = convert(each, self.opts).map_err(serde::ser::Error::custom)?;
-                    seq.serialize_element(&value).unwrap();
-                }
-            }
-            ItemType::F16 => {
-                let slice: &[u16] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<u16>(), self.len) };
-                for &each in slice.iter() {
-                    let value = half::f16::from_bits(each).to_f32();
-                    seq.serialize_element(&value).unwrap();
-                }
-            }
-            ItemType::F32 => {
-                let slice: &[f32] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<f32>(), self.len) };
-                for &each in slice.iter() {
-                    seq.serialize_element(&each).unwrap();
-                }
-            }
-            ItemType::F64 => {
-                let slice: &[f64] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<f64>(), self.len) };
-                for &each in slice.iter() {
-                    seq.serialize_element(&each).unwrap();
-                }
-            }
-            ItemType::I8 => {
-                let slice: &[i8] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<i8>(), self.len) };
-                for &each in slice.iter() {
-                    seq.serialize_element(&each).unwrap();
-                }
-            }
-            ItemType::I16 => {
-                let slice: &[i16] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<i16>(), self.len) };
-                for &each in slice.iter() {
-                    seq.serialize_element(&each).unwrap();
-                }
-            }
-            ItemType::I32 => {
-                let slice: &[i32] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<i32>(), self.len) };
-                for &each in slice.iter() {
-                    seq.serialize_element(&each).unwrap();
-                }
-            }
-            ItemType::I64 => {
-                let slice: &[i64] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<i64>(), self.len) };
-                for &each in slice.iter() {
-                    seq.serialize_element(&each).unwrap();
-                }
-            }
-            ItemType::U8 => {
-                let slice: &[u8] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<u8>(), self.len) };
-                for &each in slice.iter() {
-                    seq.serialize_element(&each).unwrap();
-                }
-            }
-            ItemType::U16 => {
-                let slice: &[u16] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<u16>(), self.len) };
-                for &each in slice.iter() {
-                    seq.serialize_element(&each).unwrap();
-                }
-            }
-            ItemType::U32 => {
-                let slice: &[u32] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<u32>(), self.len) };
-                for &each in slice.iter() {
-                    seq.serialize_element(&each).unwrap();
-                }
-            }
-            ItemType::U64 => {
-                let slice: &[u64] =
-                    unsafe { std::slice::from_raw_parts(self.data.cast::<u64>(), self.len) };
-                for &each in slice.iter() {
-                    seq.serialize_element(&each).unwrap();
-                }
-            }
-        }
-        seq.end()
+            Ok(())
+        })
     }
 }
 
@@ -289,19 +295,21 @@ enum NumpyArrayNode {
 }
 
 impl Serialize for NumpyArrayNode {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         match self {
-            Self::Internal(children) => {
-                let mut seq = serializer.serialize_seq(Some(children.len()))?;
+            Self::Internal(children) => serializer.serialize_seq(children.len(), |seq| {
                 for child in children {
                     seq.serialize_element(child).unwrap();
                 }
-                seq.end()
-            }
-            Self::Leaf(value) => value.serialize(serializer),
+                Ok(())
+            }),
+            Self::Leaf(value) => value.serialize_as::<KEY, _>(serializer),
         }
     }
 }
@@ -421,11 +429,14 @@ impl<'py> NumpyArray<'py> {
 }
 
 impl Serialize for NumpyArray<'_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
-        self.root.serialize(serializer)
+        self.root.serialize_as::<KEY, _>(serializer)
     }
 }
 
@@ -729,12 +740,15 @@ macro_rules! define_numpy_type {
         }
 
         impl Serialize for $name<'_, '_> {
-            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            fn serialize_as<const KEY: bool, W>(
+                &self,
+                serializer: &mut Serializer<'_, '_, W>,
+            ) -> Result<(), Error>
             where
-                S: Serializer,
+                W: WriteSlices,
             {
                 let value = unsafe { (*self.obj.as_ptr().cast::<$object_name>()).value };
-                value.serialize(serializer)
+                value.serialize_as::<KEY, _>(serializer)
             }
         }
     };
@@ -785,18 +799,21 @@ impl<'a, 'py> NumpyDatetime64<'a, 'py> {
 }
 
 impl Serialize for NumpyDatetime64<'_, '_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         let Some(descr) = get_dtype_descr(self.obj, self.state) else {
-            return Err(serde::ser::Error::custom("numpy object is malformed"));
+            return Err(Error::custom("numpy object is malformed"));
         };
         let unit = NumpyDatetimeUnit::from_str(descr.as_borrowed());
         let value = unsafe { (*self.obj.as_ptr().cast::<NumpyDatetime64Object>()).value };
         unit.datetime(value, self.opts)
-            .map_err(serde::ser::Error::custom)?
-            .serialize(serializer)
+            .map_err(Error::custom)?
+            .serialize_as::<KEY, _>(serializer)
     }
 }
 
@@ -825,11 +842,16 @@ impl<'a, 'py> NumpyFloat16<'a, 'py> {
 }
 
 impl Serialize for NumpyFloat16<'_, '_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         let value = unsafe { (*self.obj.as_ptr().cast::<NumpyFloat16Object>()).value };
-        half::f16::from_bits(value).to_f32().serialize(serializer)
+        half::f16::from_bits(value)
+            .to_f32()
+            .serialize_as::<KEY, _>(serializer)
     }
 }

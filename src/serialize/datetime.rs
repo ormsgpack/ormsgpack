@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use crate::ffi::{cast_into_exact, hasattr, BorrowedWithType};
+use crate::io::WriteSlices;
 use crate::opt::*;
 use crate::serialize::datetimelike::{DateLike, DateTimeLike, TimeLike};
+use crate::serialize::Error;
+use crate::serialize::{Serialize, Serializer};
 use pyo3::prelude::*;
 use pyo3::types::{
     PyDate, PyDateAccess, PyDateTime, PyDelta, PyDeltaAccess, PyString, PyTime, PyTimeAccess,
     PyType, PyTzInfoAccess,
 };
 use pyo3::PyTypeInfo;
-use serde::ser::{Serialize, Serializer};
-use serde_bytes::Bytes;
 
 pub struct State {
     date_type: Py<PyType>,
@@ -67,9 +68,12 @@ impl DateLike for Date<'_, '_> {
 
 impl Serialize for Date<'_, '_> {
     #[inline(never)]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         let mut cursor = std::io::Cursor::new([0u8; 32]);
         DateLike::write_rfc3339(self, &mut cursor).unwrap();
@@ -137,9 +141,12 @@ impl TimeLike for Time<'_, '_> {
 
 impl Serialize for Time<'_, '_> {
     #[inline(never)]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         let mut cursor = std::io::Cursor::new([0u8; 32]);
         TimeLike::write_rfc3339(self, &mut cursor, self.opts).unwrap();
@@ -280,9 +287,12 @@ impl DateTimeLike for DateTime<'_, '_> {
 
 impl Serialize for DateTime<'_, '_> {
     #[inline(never)]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         let mut cursor = std::io::Cursor::new([0u8; 32]);
         if self.opts & DATETIME_AS_TIMESTAMP_EXT != 0
@@ -291,7 +301,7 @@ impl Serialize for DateTime<'_, '_> {
             DateTimeLike::write_timestamp(self, &mut cursor).unwrap();
             let len = cursor.position() as usize;
             let timestamp = &cursor.get_ref()[0..len];
-            serializer.serialize_newtype_variant("", 128, "", Bytes::new(timestamp))
+            serializer.serialize_ext(-1, timestamp)
         } else {
             DateTimeLike::write_rfc3339(self, &mut cursor, self.opts).unwrap();
             let len = cursor.position() as usize;
