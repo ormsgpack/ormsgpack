@@ -55,11 +55,6 @@ jobs:
             runs-on: 'windows-latest'
           - target: 'aarch64-pc-windows-msvc'
             runs-on: 'windows-11-arm'
-        exclude:
-          - python-version: '3.14t'
-            target: 'aarch64-pc-windows-msvc'
-          - python-version: '3.15t'
-            target: 'aarch64-pc-windows-msvc'
     env:
       UV_PYTHON: ${{ matrix.python-version }}
       UV_PYTHON_PREFERENCE: only-managed
