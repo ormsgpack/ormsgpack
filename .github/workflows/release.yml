@@ -62,18 +62,20 @@ jobs:
             target: 'aarch64-pc-windows-msvc'
     env:
       UV_PYTHON: ${{ matrix.python-version }}
+      UV_PYTHON_PREFERENCE: only-managed
     steps:
       - uses: actions/checkout@v7.0.1
-      - name: Set up Python
-        uses: actions/setup-python@v7.1.0
-        with:
-          python-version: ${{ matrix.python-version }}
       - uses: astral-sh/setup-uv@v10.3.3
         with:
           version: ${{ env.UV_VERSION }}
           python-version: ${{ matrix.python-version }}
           cache-suffix: ${{ github.workflow }}
           prune-cache: true
+      - name: Set up Python
+        shell: bash
+        run: |
+          uv python install
+          uv python dir --bin >> "$GITHUB_PATH"
       - uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.target }}
