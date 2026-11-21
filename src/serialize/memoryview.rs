@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use crate::ffi::{BorrowedWithType, Buffer};
+use crate::io::WriteSlices;
+use crate::serialize::Error;
+use crate::serialize::{Serialize, Serializer};
 use pyo3::prelude::*;
 use pyo3::types::PyMemoryView;
-use serde::ser::{Serialize, Serializer};
 
 #[repr(transparent)]
 pub struct MemoryView<'a, 'py> {
@@ -20,16 +22,17 @@ impl<'a, 'py> MemoryView<'a, 'py> {
 }
 
 impl Serialize for MemoryView<'_, '_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         if let Some(buffer) = Buffer::get(self.obj) {
             serializer.serialize_bytes(buffer.as_bytes())
         } else {
-            Err(serde::ser::Error::custom(
-                "Failed to get buffer from memoryview",
-            ))
+            Err(Error::custom("Failed to get buffer from memoryview"))
         }
     }
 }
