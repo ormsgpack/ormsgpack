@@ -219,43 +219,46 @@ def test_datetime_partial_hour(timezone: Callable[[str], datetime.tzinfo]) -> No
     ) == msgpack.packb(["2018-12-01T02:03:04+10:30"])
 
 
-@pytest.mark.parametrize("timezone", TIMEZONE_PARAMS)
-def test_datetime_partial_second(timezone: Callable[[str], datetime.tzinfo]) -> None:
+@pytest.mark.parametrize("sign", (-1, 1), ids=("negative", "positive"))
+@pytest.mark.parametrize(
+    ("offset", "expected_offset"),
+    (
+        pytest.param(
+            datetime.timedelta(hours=22, minutes=58, seconds=29),
+            "22:58",
+            id="round-down",
+        ),
+        pytest.param(
+            datetime.timedelta(hours=22, minutes=58, seconds=30),
+            "22:59",
+            id="round-up",
+        ),
+        pytest.param(
+            datetime.timedelta(hours=22, minutes=59, seconds=30),
+            "23:00",
+            id="rollover",
+        ),
+        pytest.param(
+            datetime.timedelta(hours=23, minutes=59, seconds=30),
+            "23:59",
+            id="clamp",
+        ),
+    ),
+)
+def test_datetime_offset_rounding(
+    sign: int,
+    offset: datetime.timedelta,
+    expected_offset: str,
+) -> None:
     """
     datetime.datetime UTC offset round seconds
 
     https://tools.ietf.org/html/rfc3339#section-5.8
     """
-
-    # 0:17:30
+    expected_sign = "-" if sign < 0 else "+"
     assert ormsgpack.packb(
-        [
-            datetime.datetime(
-                1892,
-                5,
-                1,
-                0,
-                0,
-                0,
-                tzinfo=timezone("Europe/Brussels"),
-            )
-        ]
-    ) == msgpack.packb(["1892-05-01T00:00:00+00:18"])
-
-    # 0:09:21
-    assert ormsgpack.packb(
-        [
-            datetime.datetime(
-                1911,
-                3,
-                10,
-                0,
-                0,
-                0,
-                tzinfo=timezone("Europe/Paris"),
-            )
-        ]
-    ) == msgpack.packb(["1911-03-10T00:00:00+00:09"])
+        datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone(sign * offset))
+    ) == msgpack.packb(f"2000-01-01T00:00:00{expected_sign}{expected_offset}")
 
 
 def test_datetime_microsecond_max() -> None:
