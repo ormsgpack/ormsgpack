@@ -85,25 +85,14 @@ pub trait DateTimeLike: DateLike + TimeLike {
                     debug_assert!(len == tz.len());
                 }
             } else {
-                let offset_hour: i32;
-                let mut offset_minute: i32;
-                let mut offset_second: i32;
                 if offset < 0 {
                     writer.write_all(b"-")?;
-                    offset_second = -offset;
                 } else {
                     writer.write_all(b"+")?;
-                    offset_second = offset;
                 }
-                (offset_minute, offset_second) = (offset_second / 60, offset_second % 60);
-                (offset_hour, offset_minute) = (offset_minute / 60, offset_minute % 60);
                 // https://tools.ietf.org/html/rfc3339#section-5.8
-                // "exactly 19 minutes and 32.13 seconds ahead of UTC"
-                // "closest representable UTC offset"
-                //  "+20:00"
-                if offset_second >= 30 {
-                    offset_minute += 1;
-                }
+                let total_minutes = ((offset.abs() + 30) / 60).min(23 * 60 + 59);
+                let (offset_hour, offset_minute) = (total_minutes / 60, total_minutes % 60);
                 write_integer(writer, offset_hour, 2)?;
                 writer.write_all(b":")?;
                 write_integer(writer, offset_minute, 2)?;
