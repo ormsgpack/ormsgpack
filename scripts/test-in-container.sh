@@ -16,10 +16,6 @@ command=$(cat <<'EOF'
     curl --proto =https --tlsv1.2 -LsSf "https://astral.sh/uv/$UV_VERSION/install.sh" | sh
     export PATH=$PATH:$HOME/.local/bin
     uv python install "$UV_PYTHON"
-    # https://github.com/astral-sh/python-build-standalone/pull/1442
-    find "$UV_PYTHON_INSTALL_DIR" \
-        -name '_sysconfigdata__linux_arm-linux-gnueabihf.py' \
-        -exec sed -i -e 's/-mno-omit-leaf-frame-pointer//g' -e 's/-mno-thumb//g' {} +
     uv sync --frozen --no-install-project
     uv pip install ormsgpack --no-index -f target/wheels
     uv run --no-sync pytest
