@@ -60,7 +60,7 @@ jobs:
       UV_PYTHON_PREFERENCE: only-managed
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: astral-sh/setup-uv@v10.4.0
         with:
           version: ${{ env.UV_VERSION }}
           python-version: ${{ matrix.python-version }}
@@ -192,7 +192,7 @@ jobs:
           pattern: ormsgpack-*
           path: dist
           merge-multiple: true
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: astral-sh/setup-uv@v10.4.0
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: false
