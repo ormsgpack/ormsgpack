@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use crate::ffi::{cast_into_exact, pylong_to_u128_be_bytes, BorrowedWithType};
-use crate::serialize::pyerr_to_serde;
+use crate::io::WriteSlices;
+use crate::serialize::Error;
+use crate::serialize::{Serialize, Serializer};
 use pyo3::prelude::*;
 use pyo3::types::{PyInt, PyString};
-use serde::ser::{Serialize, Serializer};
 
 const HEX: [u8; 16] = *b"0123456789abcdef";
 
@@ -73,20 +74,20 @@ impl<'a, 'py> UUID<'a, 'py> {
 
 impl Serialize for UUID<'_, '_> {
     #[inline(never)]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize_as<const KEY: bool, W>(
+        &self,
+        serializer: &mut Serializer<'_, '_, W>,
+    ) -> Result<(), Error>
     where
-        S: Serializer,
+        W: WriteSlices,
     {
         let value = self
             .obj
-            .getattr(self.state.int_str.bind_borrowed(self.obj.py()))
-            .map_err(|e| pyerr_to_serde(self.obj.py(), e))?;
+            .getattr(self.state.int_str.bind_borrowed(self.obj.py()))?;
         let Some(value) =
             cast_into_exact::<PyInt>(value).and_then(|v| pylong_to_u128_be_bytes(v.as_borrowed()))
         else {
-            return Err(serde::ser::Error::custom(
-                "UUID.int must be a 128-bit unsigned int",
-            ));
+            return Err(Error::custom("UUID.int must be a 128-bit unsigned int"));
         };
         let mut cursor = std::io::Cursor::new([0u8; 64]);
         write_uuid(&mut cursor, &value).unwrap();
